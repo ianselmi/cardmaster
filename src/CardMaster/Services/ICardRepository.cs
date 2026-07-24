@@ -22,4 +22,7 @@ public interface ICardRepository
 
     /// <summary>Cancellazione LOGICA (tombstone): la riga non viene rimossa fisicamente.</summary>
     Task SoftDeleteAsync(string id);
+
+    /// <summary>Vero se esiste una carta attiva (non tombstone) con lo stesso barcode.</summary>
+    Task<bool> AnyActiveByBarcodeAsync(string barcode);
 }

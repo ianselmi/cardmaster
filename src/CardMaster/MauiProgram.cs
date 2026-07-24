@@ -1,3 +1,4 @@
+using BarcodeScanning;
 using CardMaster.Services;
 using CardMaster.ViewModels;
 using CardMaster.Views;
@@ -16,6 +17,7 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.UseBarcodeScanning()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -47,5 +49,10 @@ public static class MauiProgram
 		services.AddSingleton<AppShell>();
 		services.AddSingleton<CardListViewModel>();
 		services.AddSingleton<CardListPage>();
+
+		// Acquisizione carta (scan / manuale): pagine e VM transient per stato fresco.
+		services.AddTransient<ScanPage>();
+		services.AddTransient<AddCardPage>();
+		services.AddTransient<AddCardViewModel>();
 	}
 }

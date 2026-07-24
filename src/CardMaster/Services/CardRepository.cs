@@ -54,6 +54,22 @@ public sealed class CardRepository : ICardRepository
         await connection.UpdateAsync(card).ConfigureAwait(false);
     }
 
+    public async Task<bool> AnyActiveByBarcodeAsync(string barcode)
+    {
+        if (string.IsNullOrEmpty(barcode))
+        {
+            return false;
+        }
+
+        var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
+        var existing = await connection.Table<Card>()
+            .Where(c => c.Barcode == barcode && c.DeletedAt == null)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+
+        return existing is not null;
+    }
+
     public async Task SoftDeleteAsync(string id)
     {
         var connection = await _database.GetConnectionAsync().ConfigureAwait(false);

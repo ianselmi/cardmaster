@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.AddCardPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Nuova carta">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Codice a barre" FontSize="13" Opacity="0.7" />
+                <Entry Text="{Binding Barcode}" Keyboard="Default" Placeholder="Numero del codice" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Formato" FontSize="13" Opacity="0.7" />
+                <Picker
+                    ItemsSource="{Binding Formats}"
+                    SelectedItem="{Binding SelectedFormat}"
+                    Title="Seleziona il formato" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Emittente" FontSize="13" Opacity="0.7" />
+                <Picker
+                    ItemsSource="{Binding IssuerOptions}"
+                    SelectedItem="{Binding SelectedIssuerOption}" />
+                <Entry
+                    Text="{Binding CustomIssuerName}"
+                    Placeholder="Nome emittente"
+                    IsVisible="{Binding IsCustomIssuer}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Nome della carta" FontSize="13" Opacity="0.7" />
+                <Entry Text="{Binding DisplayName}" Placeholder="Come vuoi chiamarla" />
+            </VerticalStackLayout>
+
+            <Button Text="Salva" Clicked="OnSaveClicked" Margin="0,12,0,0" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

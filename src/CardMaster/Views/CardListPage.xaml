@@ -6,6 +6,10 @@
     xmlns:data="clr-namespace:CardMaster.Data"
     Title="Le mie carte">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Aggiungi" Clicked="OnAddClicked" />
+    </ContentPage.ToolbarItems>
+
     <CollectionView ItemsSource="{Binding Cards}">
 
         <CollectionView.EmptyView>

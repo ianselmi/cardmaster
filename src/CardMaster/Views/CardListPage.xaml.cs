@@ -18,4 +18,7 @@ public partial class CardListPage : ContentPage
         base.OnAppearing();
         await _viewModel.LoadAsync();
     }
+
+    private async void OnAddClicked(object? sender, EventArgs e)
+        => await Shell.Current.GoToAsync("ScanPage");
 }
