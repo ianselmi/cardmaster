@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "issuers": [
+    {
+      "id": "esselunga",
+      "name": "Esselunga",
+      "colorHex": "#E2001A",
+      "expectedBarcodeFormat": "EAN13",
+      "logoAsset": null,
+      "aliases": ["esselunga", "fidaty", "carta fidaty"]
+    },
+    {
+      "id": "coop",
+      "name": "Coop",
+      "colorHex": "#004996",
+      "expectedBarcodeFormat": "EAN13",
+      "logoAsset": null,
+      "aliases": ["coop", "socialcoop", "carta socio coop"]
+    },
+    {
+      "id": "conad",
+      "name": "Conad",
+      "colorHex": "#E30613",
+      "expectedBarcodeFormat": "EAN13",
+      "logoAsset": null,
+      "aliases": ["conad", "carta insieme", "insieme"]
+    },
+    {
+      "id": "ikea",
+      "name": "IKEA",
+      "colorHex": "#0058A3",
+      "expectedBarcodeFormat": "CODE128",
+      "logoAsset": null,
+      "aliases": ["ikea", "ikea family", "family"]
+    },
+    {
+      "id": "decathlon",
+      "name": "Decathlon",
+      "colorHex": "#0082C3",
+      "expectedBarcodeFormat": "EAN13",
+      "logoAsset": null,
+      "aliases": ["decathlon"]
+    }
+  ]
+}

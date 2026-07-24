@@ -40,6 +40,9 @@ public static class MauiProgram
 		services.AddSingleton<IDatabaseService, DatabaseService>();
 		services.AddSingleton<ICardRepository, CardRepository>();
 
+		// Catalogo emittenti: seed statico bundle, read-only, offline.
+		services.AddSingleton<IIssuerCatalog, IssuerCatalog>();
+
 		// Navigazione / UI
 		services.AddSingleton<AppShell>();
 		services.AddSingleton<CardListViewModel>();
