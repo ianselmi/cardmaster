@@ -4,13 +4,26 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:data="clr-namespace:CardMaster.Data"
+    xmlns:views="clr-namespace:CardMaster.Views"
     Title="Le mie carte">
+
+    <ContentPage.Resources>
+        <views:NameToTileColorConverter x:Key="NameToTileColor" />
+    </ContentPage.Resources>
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Aggiungi" Clicked="OnAddClicked" />
     </ContentPage.ToolbarItems>
 
     <CollectionView ItemsSource="{Binding Cards}">
+
+        <CollectionView.ItemsLayout>
+            <GridItemsLayout
+                Orientation="Vertical"
+                Span="2"
+                HorizontalItemSpacing="12"
+                VerticalItemSpacing="12" />
+        </CollectionView.ItemsLayout>
 
         <CollectionView.EmptyView>
             <VerticalStackLayout
@@ -32,12 +45,31 @@
 
         <CollectionView.ItemTemplate>
             <DataTemplate x:DataType="data:Card">
-                <Grid Padding="16,12" ColumnSpacing="12">
-                    <VerticalStackLayout Spacing="2">
-                        <Label Text="{Binding DisplayName}" FontSize="16" />
-                        <Label Text="{Binding IssuerName}" FontSize="12" Opacity="0.7" />
+                <Border
+                    Margin="4"
+                    HeightRequest="160"
+                    BackgroundColor="{Binding DisplayName, Converter={StaticResource NameToTileColor}}"
+                    StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="20" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Padding="16" VerticalOptions="End" Spacing="2">
+                        <Label
+                            Text="{Binding DisplayName}"
+                            TextColor="White"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            LineBreakMode="TailTruncation"
+                            MaxLines="2" />
+                        <Label
+                            Text="{Binding IssuerName}"
+                            TextColor="White"
+                            Opacity="0.85"
+                            FontSize="12"
+                            LineBreakMode="TailTruncation" />
                     </VerticalStackLayout>
-                </Grid>
+                </Border>
             </DataTemplate>
         </CollectionView.ItemTemplate>
 

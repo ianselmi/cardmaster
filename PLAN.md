@@ -53,6 +53,7 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 - [~] **`maui-unlock`** — ~~biometria via `BiometricPrompt`, fallback PIN, gestione invalidazione della chiave al cambio impronte~~ **ANNULLATA** (24 lug 2026): decisa nessuna gate di sblocco: l'app apre subito le carte. La chiave del DB resta nel Keystore senza binding all'autenticazione utente (come già in `maui-shell`).
 - [x] **`issuer-seed`** — catalogo emittenti come seed statico bundle nell'app (nome, logo, colore, formato barcode atteso); nessuna sync
 - [x] **`maui-scan-card`** — scansione ML Kit, formati EAN-13/EAN-8/UPC-A/UPC-E/Code128/Code39/ITF/Codabar/QR/PDF417, inserimento manuale, emittente opzionale dal seed, avviso duplicati, salvataggio locale (Id client-generato, tombstone)
+- [x] **`maui-card-grid`** — lista carte come griglia di riquadri (2 colonne, quadrettoni con angoli arrotondati), colore di sfondo generato in modo deterministico per carta
 - [ ] **`maui-show-card`** — rendering del barcode, luminosità al massimo e blocco spegnimento schermo, codice in chiaro come fallback per il cassiere
 - [ ] **`maui-share-qr`** — genera un QR code self-contained con i dati della carta (payload versionato); import scansionando il QR di un altro device; controllo duplicati alla ricezione
 - [ ] **`ci-build-apk`** — pipeline di build (GitHub Actions) che compila l'app MAUI Android, **firma** l'APK con keystore (secret CI), e pubblica l'artifact/APK come GitHub Release; versionamento automatico (`ApplicationVersion`/`ApplicationDisplayVersion`)
