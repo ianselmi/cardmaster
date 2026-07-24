@@ -57,8 +57,9 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 - [x] **`maui-show-card`** — rendering del barcode (ZXing.Net + SkiaSharp), luminosità al massimo e blocco spegnimento schermo, codice in chiaro come fallback, avviso filtro luce blu best-effort
 - [ ] **`maui-card-search`** — ricerca tra le carte (per nome/emittente) e barra aggiuntiva con le **ultime 3 carte usate** (richiede tracciare un timestamp "ultimo utilizzo" all'apertura della carta)
 - [ ] **`maui-edit-card`** — modifica dei dati di una carta esistente (nome, emittente, colore; eventualmente barcode/formato), con salvataggio via repository (aggiorna `UpdatedAt`)
+- [ ] **`maui-restyle`** — restyle grafico complessivo: nuovo **logo** (app icon + splash) e **palette colori** (tema/accent, colori dei tile), coerenza di tipografia e spaziature sulle pagine esistenti
 - [ ] **`maui-share-qr`** — genera un QR code self-contained con i dati della carta (payload versionato); import scansionando il QR di un altro device; controllo duplicati alla ricezione
-- [ ] **`ci-build-apk`** — pipeline di build (GitHub Actions) che compila l'app MAUI Android, **firma** l'APK con keystore (secret CI), e pubblica l'artifact/APK come GitHub Release; versionamento automatico (`ApplicationVersion`/`ApplicationDisplayVersion`)
+- [x] **`ci-build-apk`** — pipeline di build (GitHub Actions) che compila l'app MAUI Android, **firma** l'APK con keystore (secret CI), e pubblica l'artifact/APK come GitHub Release; versionamento automatico (`ApplicationVersion`/`ApplicationDisplayVersion`). *(Prerequisito utente: creare keystore + secret — vedi `docs/ci-release.md`.)*
 - [ ] **`maui-auto-update`** — controllo nuove versioni interrogando un **manifest su server** (es. `latest.json` con `versionCode`, `versionName`, `url`, `sha256`); se più recente della versione installata, scarica l'APK, **verifica il checksum/firma**, e lancia l'installazione via package installer intent (`REQUEST_INSTALL_PACKAGES`). Funzione online opzionale: non tocca il core offline
 
 ---
