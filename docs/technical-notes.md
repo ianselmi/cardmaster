@@ -14,48 +14,28 @@ di verifica build e non è considerata completa finché non compila.
 
 ---
 
-## Storage cifrato (SQLCipher) — client MAUI
+## Storage locale (SQLite) — client MAUI
 
-> Origine: change `maui-shell` (archiviata in `openspec/changes/archive/2026-07-24-maui-shell/`).
+> Origine: `maui-shell`; cifratura rimossa con `storage-plain-sqlite` (24 lug 2026).
 
-### Provider SQLite: usare `sqlite-net-base`, NON `sqlite-net-pcl`
-Per cifrare davvero il database:
+### Provider SQLite: `sqlite-net-base` + `SQLitePCLRaw.bundle_e_sqlite3`
+- Pacchetti: **`sqlite-net-base`** (ORM, senza bundle proprio) + **`SQLitePCLRaw.bundle_e_sqlite3`** (provider SQLite in chiaro, mantenuto).
+- All'avvio (`MauiProgram.CreateMauiApp`) chiamare `SQLitePCL.Batteries_V2.Init()` per attivare il provider (unico bundle referenziato).
 
-- Pacchetti: **`sqlite-net-base`** + **`SQLitePCLRaw.bundle_e_sqlcipher`**.
-- All'avvio (`MauiProgram.CreateMauiApp`) chiamare `SQLitePCL.Batteries_V2.Init()` per attivare il provider.
+**Il DB v1 è in chiaro** (nessuna cifratura at-rest). L'header del file `.db3` è quindi il consueto
+`SQLite format 3`.
 
-**Perché non `sqlite-net-pcl`:** trascina transitivamente `SQLitePCLRaw.bundle_green`
-(provider `e_sqlite3`, SQLite in chiaro). Con due provider presenti vince quello non cifrato:
-`PRAGMA key` diventa un **no-op** e il DB nasce **non cifrato** (header `SQLite format 3` leggibile).
-`sqlite-net-base` è lo stesso ORM ma senza il bundle in chiaro, così `bundle_e_sqlcipher` resta
-l'unico provider.
+### Perché niente SQLCipher (storico)
+La v1 usava `SQLitePCLRaw.bundle_e_sqlcipher` per cifrare il DB, ma quel pacchetto è **deprecato**
+(legacy, non mantenuto da SQLitePCLRaw 3.0) e senza rimpiazzo drop-in gratuito. Decisione: cifratura
+non essenziale per la v1 offline → SQLite in chiaro. **Trappola storica ancora valida come principio:**
+non usare `sqlite-net-pcl` (trascina un secondo provider e crea ambiguità sul provider attivo); con
+`sqlite-net-base` si controlla esattamente quale bundle è referenziato.
 
-### Come verificare che il DB sia davvero cifrato (a runtime)
-I primi byte del file `.db3` devono essere **casuali**, non `SQLite format 3`:
-
-```bash
-# emulatore/device, app debuggable
-adb shell run-as <package> od -A x -t x1 -N 16 files/<db>.db3
-# atteso: byte casuali (es. cb b7 c4 5f ...), NON "SQLite format 3"
-```
-
-Se l'app apre il DB con la chiave dal Keystore senza errori, la chiave è corretta
-(altrimenti SQLCipher lancerebbe "file is not a database").
-
-### Chiave di cifratura nell'Android Keystore
-L'Android Keystore non restituisce il materiale delle chiavi che custodisce, ma SQLCipher ha
-bisogno di una passphrase come byte/stringa. Pattern usato:
-
-1. Nel Keystore vive una chiave **AES-GCM** (il suo materiale non lascia mai il Keystore).
-2. Si genera una passphrase casuale per il DB, la si **cifra** con la chiave del Keystore e si salva
-   SOLO il ciphertext (IV + dati) nelle `Preferences`. La passphrase non è mai in chiaro.
-3. All'apertura si **decifra** la passphrase tramite la chiave del Keystore e la si passa a `PRAGMA key`.
-
-**Punto di innesto per `maui-unlock`:** aggiungere `SetUserAuthenticationRequired(true)` alla
-`KeyGenParameterSpec` della chiave AES lega la decifratura all'autenticazione utente (biometria/PIN).
-In `maui-shell` questo binding NON è presente (l'app deve avviarsi senza gate). L'interfaccia
-`IKeyStoreService` isola il provider così che `maui-unlock` lo estenda senza toccare il resto.
+### Se in futuro servisse di nuovo la cifratura
+Usare **`SQLite3MC.PCLRaw.bundle`** (SQLite3 Multiple Ciphers, di utelle) — mantenuto e gratuito,
+supporta la cifratura via `PRAGMA key`. NON riusare `bundle_e_sqlcipher` (deprecato).
 
 ### minSdk Android 23
-Le API Keystore AES-GCM (`KeyGenParameterSpec`, block mode GCM, ecc.) richiedono **API 23**
-(Android 6.0). `SupportedOSPlatformVersion` per android è impostato a `23.0` nel `.csproj`.
+`SupportedOSPlatformVersion` per android è `23.0` (Android 6.0): un minimo moderno ragionevole
+(in origine richiesto dalle API Keystore, ora rimosse; lasciato invariato).

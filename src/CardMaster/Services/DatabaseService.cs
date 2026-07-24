@@ -4,23 +4,16 @@ using SQLite;
 namespace CardMaster.Services;
 
 /// <summary>
-/// Apre e inizializza il database SQLite cifrato con SQLCipher. La passphrase è
-/// fornita da <see cref="IKeyStoreService"/> (custodita nell'Android Keystore).
-/// L'inizializzazione è idempotente e thread-safe.
+/// Apre e inizializza il database SQLite locale (in chiaro, v1). L'inizializzazione
+/// è idempotente e thread-safe.
 /// </summary>
 public sealed class DatabaseService : IDatabaseService
 {
     private const string DatabaseFileName = "cardmaster.db3";
     private const int SchemaVersion = 1;
 
-    private readonly IKeyStoreService _keyStore;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private SQLiteAsyncConnection? _connection;
-
-    public DatabaseService(IKeyStoreService keyStore)
-    {
-        _keyStore = keyStore;
-    }
 
     public async Task<SQLiteAsyncConnection> GetConnectionAsync()
     {
@@ -38,15 +31,11 @@ public sealed class DatabaseService : IDatabaseService
             }
 
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
-            var passphrase = _keyStore.GetOrCreateDatabaseKey();
 
-            var options = new SQLiteConnectionString(
+            var connection = new SQLiteAsyncConnection(
                 dbPath,
                 SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache,
-                storeDateTimeAsTicks: true,
-                key: passphrase);
-
-            var connection = new SQLiteAsyncConnection(options);
+                storeDateTimeAsTicks: true);
 
             await connection.CreateTableAsync<Card>().ConfigureAwait(false);
             await ApplySchemaVersionAsync(connection).ConfigureAwait(false);

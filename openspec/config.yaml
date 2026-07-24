@@ -12,14 +12,15 @@ context: |
   Prodotto: app Android, 100% offline. Aprire una carta, scansionarne una nuova e condividerla
   funzionano senza rete e senza account.
 
-  Client: .NET MAUI (solo Android). SQLite locale cifrato con SQLCipher, chiave in Android Keystore
-  protetta da autenticazione utente. Scansione con ML Kit (BarcodeScanning.Native.Maui), rendering
-  barcode con ZXing.Net.
+  Client: .NET MAUI (solo Android). SQLite locale IN CHIARO (SQLitePCLRaw.bundle_e_sqlite3).
+  Scansione con ML Kit (BarcodeScanning.Native.Maui), rendering barcode con ZXing.Net + SkiaSharp.
+  (Decisione 24 lug 2026: rimossa la cifratura SQLCipher — bundle_e_sqlcipher deprecato e cifratura
+  non essenziale per la v1. Eventuale reintroduzione: SQLite3MC.PCLRaw.bundle, mantenuto.)
 
   Autenticazione v1: NESSUNA gate di sblocco applicativa. L'app si apre direttamente sulla lista carte
-  (nessun account, nessun server, nessun prompt biometrico o PIN). La protezione e' la cifratura at-rest
-  (SQLCipher + chiave nel Keystore); la protezione "telefono in mano ad altri" e' delegata al lockscreen
-  di Android. (Decisione 24 lug 2026: rimossi biometria e PIN applicativi; la change maui-unlock e' annullata.)
+  (nessun account, nessun server, nessun prompt biometrico o PIN). La protezione "telefono in mano ad
+  altri" e' delegata al lockscreen di Android. (Decisione 24 lug 2026: rimossi biometria e PIN applicativi;
+  la change maui-unlock e' annullata.)
 
   Modello dati: carte locali al device. Id carte generati dal CLIENT (GUID/ULID) — restano validi con la
   futura sync. Cancellazioni logiche con tombstone (mai DELETE fisico), gia' ora.

@@ -2,47 +2,23 @@
 
 ## Purpose
 
-Storage locale cifrato del device: database SQLite protetto da SQLCipher, con chiave gestita nell'Android Keystore. Definisce il modello dati base (Id client-generati, tombstone) e il layer di accesso ai dati con inizializzazione/migrazione idempotente dello schema.
+Storage locale del device: database SQLite (in chiaro in v1). Definisce il modello dati base (Id client-generati, tombstone) e il layer di accesso ai dati con inizializzazione/migrazione idempotente dello schema.
 
 ## Requirements
 
-### Requirement: Database SQLite cifrato con SQLCipher
+### Requirement: Database SQLite locale
 
-Il sistema SHALL persistere i dati in un database SQLite locale cifrato tramite SQLCipher. Il database MUST essere illeggibile senza la chiave di cifratura corretta.
+Il sistema SHALL persistere i dati in un database SQLite locale sul device, tramite un provider SQLite mantenuto. In v1 il database NON è cifrato: la protezione dei dati è delegata al lockscreen del dispositivo.
 
-#### Scenario: Il database è cifrato a riposo
+#### Scenario: Persistenza locale
 
-- **WHEN** si ispeziona il file del database sul filesystem del device
-- **THEN** il contenuto è cifrato e non leggibile in chiaro senza la chiave
+- **WHEN** l'app salva o legge dati
+- **THEN** le operazioni avvengono su un database SQLite locale, senza necessità di rete
 
-#### Scenario: Apertura con chiave corretta
+#### Scenario: Apertura del database
 
-- **WHEN** l'app apre il database fornendo la chiave di cifratura corretta
-- **THEN** le operazioni di lettura e scrittura funzionano correttamente
-
-#### Scenario: Apertura con chiave errata
-
-- **WHEN** si tenta di aprire il database con una chiave errata
-- **THEN** l'apertura fallisce e nessun dato viene esposto
-
-### Requirement: Chiave di cifratura nell'Android Keystore
-
-Il sistema SHALL generare una chiave di cifratura del database al primo avvio e SHALL custodirla nell'Android Keystore. La chiave NON MUST essere memorizzata in chiaro nello storage applicativo o nel codice. Il vincolo della chiave all'autenticazione utente (biometria/PIN) è demandato alla capability di sblocco locale.
-
-#### Scenario: Generazione della chiave al primo avvio
-
-- **WHEN** l'app viene avviata per la prima volta e non esiste ancora una chiave
-- **THEN** viene generata una chiave di cifratura e custodita nell'Android Keystore
-
-#### Scenario: Riuso della chiave esistente
-
-- **WHEN** l'app viene avviata e una chiave esiste già nel Keystore
-- **THEN** viene riutilizzata la chiave esistente per aprire il database, senza rigenerarla
-
-#### Scenario: La chiave non è in chiaro
-
-- **WHEN** si ispezionano le preferenze e i file dell'app
-- **THEN** il materiale della chiave non è presente in chiaro fuori dal Keystore
+- **WHEN** l'app apre il database all'avvio
+- **THEN** la connessione viene stabilita senza richiedere una chiave di cifratura
 
 ### Requirement: Modello dati base con Id client-generati e tombstone
 

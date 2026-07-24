@@ -35,12 +35,12 @@ public static class MauiProgram
 
 	private static void RegisterServices(IServiceCollection services)
 	{
-		// Storage cifrato: chiave nel Keystore -> passphrase SQLCipher -> DB.
+		// Servizi di piattaforma Android.
 #if ANDROID
-		services.AddSingleton<IKeyStoreService, Platforms.Android.Services.KeyStoreService>();
 		services.AddSingleton<IScreenBrightnessController, Platforms.Android.Services.ScreenBrightnessController>();
 		services.AddSingleton<IReadingFilterProbe, Platforms.Android.Services.ReadingFilterProbe>();
 #endif
+		// Storage locale SQLite (in chiaro, v1).
 		services.AddSingleton<IDatabaseService, DatabaseService>();
 		services.AddSingleton<ICardRepository, CardRepository>();
 
