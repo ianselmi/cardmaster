@@ -49,7 +49,7 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 
 ## v1 — App offline (nessun server)
 
-- [ ] **`maui-shell`** — progetto MAUI Android, navigazione, DI, SQLite locale con SQLCipher e chiave in Keystore
+- [x] **`maui-shell`** — progetto MAUI Android, navigazione, DI, SQLite locale con SQLCipher e chiave in Keystore
 - [ ] **`maui-unlock`** — biometria via `BiometricPrompt`, fallback PIN, gestione invalidazione della chiave al cambio impronte *(partire da `/opsx:explore`)*
 - [ ] **`issuer-seed`** — catalogo emittenti come seed statico bundle nell'app (nome, logo, colore, formato barcode atteso); nessuna sync
 - [ ] **`maui-scan-card`** — scansione ML Kit, formati EAN-13/EAN-8/Code128/Code39/ITF/Codabar/QR/PDF417, riconoscimento emittente dal seed, salvataggio locale (Id client-generato, tombstone)

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.CardListPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:data="clr-namespace:CardMaster.Data"
+    Title="Le mie carte">
+
+    <CollectionView ItemsSource="{Binding Cards}">
+
+        <CollectionView.EmptyView>
+            <VerticalStackLayout
+                Padding="24"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Spacing="8">
+                <Label
+                    Text="Nessuna carta ancora"
+                    FontSize="18"
+                    HorizontalOptions="Center" />
+                <Label
+                    Text="Le carte scansionate compariranno qui."
+                    FontSize="13"
+                    HorizontalOptions="Center"
+                    Opacity="0.7" />
+            </VerticalStackLayout>
+        </CollectionView.EmptyView>
+
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="data:Card">
+                <Grid Padding="16,12" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="2">
+                        <Label Text="{Binding DisplayName}" FontSize="16" />
+                        <Label Text="{Binding IssuerName}" FontSize="12" Opacity="0.7" />
+                    </VerticalStackLayout>
+                </Grid>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+
+    </CollectionView>
+
+</ContentPage>

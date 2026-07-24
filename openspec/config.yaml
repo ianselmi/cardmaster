@@ -54,6 +54,10 @@ context: |
   Convenzioni: commit convenzionali. CORS non pertinente per il client MAUI nativo (rilevante solo con un
   eventuale frontend web futuro).
 
+  La compilazione senza errori e' OBBLIGATORIA: ogni change include un passo finale di verifica build
+  (dotnet build, 0 errori) come criterio di accettazione. Vedi docs/technical-notes.md per le trappole
+  tecniche gia' incontrate (es. provider SQLCipher: usare sqlite-net-base, non sqlite-net-pcl).
+
 # Per-artifact rules (optional)
 # rules:
 #   proposal:
