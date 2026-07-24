@@ -1,0 +1,60 @@
+schema: spec-driven
+
+# Project context — shown to AI when creating artifacts.
+context: |
+  CardMaster — app per conservare e mostrare i codici a barre delle carte fedeltà.
+  Offline-first. Strategia a due fasi di rilascio (vedi PLAN.md nella root):
+    - v1: completamente offline, nessun server. Auth = solo sblocco locale. Condivisione via QR self-contained.
+    - v2 (rimandato): backend .NET 10 per auth online, backup e multi-device.
+  Le decisioni qui sotto sono GIA' PRESE: le proposte non devono rimetterle in discussione.
+
+  === v1 (offline) ===
+  Prodotto: app Android, 100% offline. Aprire una carta, scansionarne una nuova e condividerla
+  funzionano senza rete e senza account.
+
+  Client: .NET MAUI (solo Android). SQLite locale cifrato con SQLCipher, chiave in Android Keystore
+  protetta da autenticazione utente. Scansione con ML Kit (BarcodeScanning.Native.Maui), rendering
+  barcode con ZXing.Net.
+
+  Autenticazione v1: solo sblocco locale. Nessun account, nessun server. Biometria via BiometricPrompt
+  per sbloccare la chiave del DB, con fallback OBBLIGATORIO a PIN applicativo (biometria assente/fallita
+  o chiave invalidata dal cambio impronte).
+
+  Modello dati: carte locali al device. Id carte generati dal CLIENT (GUID/ULID) — restano validi con la
+  futura sync. Cancellazioni logiche con tombstone (mai DELETE fisico), gia' ora.
+
+  Condivisione v1: una carta si condivide mostrando un QR code self-contained che incapsula tutti i dati
+  (emittente/nome, barcode, barcodeFormat, colore/logo id). L'altro device lo scansiona e crea una COPIA
+  indipendente (nessun legame persistente — il barcode fedelta' e' immutabile). Peer-to-peer, nessun
+  server. Alla ricezione: controllo duplicati (stesso emittente + barcode). Payload versionato (campo v).
+
+  Riconoscimento emittente: catalogo emittenti bundle locale statico (seed nell'app) per nome/logo/formato
+  atteso; nessuna sync del catalogo in v1.
+
+  Build & distribuzione (fuori Play Store): pipeline GitHub Actions che compila e FIRMA l'APK (keystore
+  come secret CI, mai nel repo) e pubblica una Release. Auto-update self-hosted: manifest latest.json
+  (versionCode, versionName, url, sha256); l'app scarica l'APK, VERIFICA sha256/firma e installa via
+  package installer intent. Il "server" di update e' solo hosting statico, non il backend applicativo.
+
+  Sicurezza v1: SQLCipher sul device. Niente TLS/E2E (nessuna rete nel core; l'unica rete e' l'update opt-in).
+
+  === v2 (backend — riferimento, per non chiudere porte ora) ===
+  Backend: .NET 10, Minimal API, CQRS a vertical slice (una cartella per feature: comando+handler+validator).
+  EF Core + SQLite, WAL abilitato, scritture serializzate da una coda (SQLite = un solo writer). Niente read
+  model separato, event sourcing o MediatR. Docker + docker compose, reverse proxy per il TLS.
+
+  Autenticazione v2: primo accesso online (credenziali o Google con Authorization Code + PKCE, nessun client
+  secret nell'APK) -> access token breve + refresh token lungo con rotazione in SecureStorage. La biometria
+  resta solo sblocco locale. Refresh token scaduto -> app usabile in sola lettura, si blocca solo la sync.
+
+  Sincronizzazione v2: cursore = contatore monotono Seq assegnato dal server (INTEGER PRIMARY KEY
+  AUTOINCREMENT su ChangeLog append-only). Timestamp client solo tie-breaker per il last-write-wins, mai
+  cursore. OperationId client-generato per l'idempotenza sui retry.
+
+  Convenzioni: commit convenzionali. CORS non pertinente per il client MAUI nativo (rilevante solo con un
+  eventuale frontend web futuro).
+
+# Per-artifact rules (optional)
+# rules:
+#   proposal:
+#     - Includi sempre una sezione "Non-goals"
