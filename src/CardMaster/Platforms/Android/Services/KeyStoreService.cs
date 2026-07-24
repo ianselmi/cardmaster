@@ -19,8 +19,10 @@ namespace CardMaster.Platforms.Android.Services;
 ///      e si salva SOLO il ciphertext (IV+dati) nelle Preferences.
 ///   3. All'apertura si decifra la passphrase tramite la chiave del Keystore.
 ///
-/// maui-unlock aggiungerà <c>SetUserAuthenticationRequired(true)</c> alla KeyGenParameterSpec
-/// per legare la decifratura all'autenticazione utente (biometria/PIN).
+/// Nota (decisione 24 lug 2026): la v1 NON prevede alcuna gate di sblocco applicativa
+/// (niente biometria/PIN): l'app apre direttamente le carte. La chiave del Keystore
+/// resta quindi senza binding all'autenticazione utente. La protezione è la cifratura
+/// at-rest; la protezione "telefono in mano ad altri" è delegata al lockscreen di Android.
 /// </summary>
 public sealed class KeyStoreService : IKeyStoreService
 {
@@ -65,7 +67,7 @@ public sealed class KeyStoreService : IKeyStoreService
             .SetBlockModes(KeyProperties.BlockModeGcm)!
             .SetEncryptionPaddings(KeyProperties.EncryptionPaddingNone)!
             .SetKeySize(256)!
-            // maui-unlock: .SetUserAuthenticationRequired(true) andrà qui.
+            // v1: nessun binding all'autenticazione utente (l'app apre subito le carte).
             .Build();
 
         generator.Init(spec);

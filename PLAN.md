@@ -16,8 +16,8 @@ Questi vincoli vanno nel file di contesto di progetto di OpenSpec; ogni change d
 
 ### v1 (offline)
 - **Prodotto**: app Android, 100% offline. Aprire una carta, scansionarne una nuova e condividerla funzionano senza rete e senza account.
-- **Client**: .NET MAUI (solo Android). SQLite locale cifrato con **SQLCipher**, chiave in **Android Keystore** protetta da autenticazione utente. Scansione con **ML Kit** (`BarcodeScanning.Native.Maui`), rendering barcode con **ZXing.Net**.
-- **Autenticazione v1**: **solo sblocco locale**. Nessun account, nessun server. Biometria via `BiometricPrompt` per sbloccare la chiave del DB, con **fallback obbligatorio a PIN** applicativo (biometria assente/fallita o chiave invalidata dal cambio impronte).
+- **Client**: .NET MAUI (solo Android). SQLite locale cifrato con **SQLCipher**, chiave in **Android Keystore**. Scansione con **ML Kit** (`BarcodeScanning.Native.Maui`), rendering barcode con **ZXing.Net**.
+- **Autenticazione v1**: **nessuna gate di sblocco applicativa**. L'app si apre direttamente sulla lista carte (nessun account, nessun server, nessun prompt biometrico o PIN). La protezione è la cifratura at-rest (SQLCipher + chiave nel Keystore); la protezione "telefono in mano ad altri" è delegata al lockscreen di Android. *(Decisione del 24 lug 2026: rimossi biometria e PIN applicativi rispetto all'ipotesi iniziale — l'app deve mostrare subito le carte.)*
 - **Modello dati**: le carte sono locali al device. `Id` carte generati dal **client** (GUID/ULID) — così restano validi quando in v2 arriverà la sync. Cancellazioni logiche con **tombstone** (mai DELETE fisico), già ora, per non complicare la futura sincronizzazione.
 - **Condivisione v1**: una carta si condivide mostrando un **QR code self-contained** che incapsula tutti i dati necessari (emittente/nome, `barcode`, `barcodeFormat`, eventuale colore/logo id). L'altro device lo **scansiona** e crea una **copia indipendente** (nessun legame persistente — il barcode fedeltà è immutabile). Peer-to-peer, **nessun server**. Alla ricezione: controllo duplicati (stesso emittente + barcode) per proporre di saltare invece di duplicare. Payload versionato (`v` nello schema) per compatibilità futura.
 - **Riconoscimento emittente**: catalogo emittenti **bundle locale statico** (seed nell'app) per nome/logo/formato atteso; nessuna sync del catalogo in v1.
@@ -50,7 +50,7 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 ## v1 — App offline (nessun server)
 
 - [x] **`maui-shell`** — progetto MAUI Android, navigazione, DI, SQLite locale con SQLCipher e chiave in Keystore
-- [ ] **`maui-unlock`** — biometria via `BiometricPrompt`, fallback PIN, gestione invalidazione della chiave al cambio impronte *(partire da `/opsx:explore`)*
+- [~] **`maui-unlock`** — ~~biometria via `BiometricPrompt`, fallback PIN, gestione invalidazione della chiave al cambio impronte~~ **ANNULLATA** (24 lug 2026): decisa nessuna gate di sblocco: l'app apre subito le carte. La chiave del DB resta nel Keystore senza binding all'autenticazione utente (come già in `maui-shell`).
 - [ ] **`issuer-seed`** — catalogo emittenti come seed statico bundle nell'app (nome, logo, colore, formato barcode atteso); nessuna sync
 - [ ] **`maui-scan-card`** — scansione ML Kit, formati EAN-13/EAN-8/Code128/Code39/ITF/Codabar/QR/PDF417, riconoscimento emittente dal seed, salvataggio locale (Id client-generato, tombstone)
 - [ ] **`maui-show-card`** — rendering del barcode, luminosità al massimo e blocco spegnimento schermo, codice in chiaro come fallback per il cassiere
