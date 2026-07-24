@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.ShowCardPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="{Binding DisplayName}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Label
+                Text="{Binding IssuerName}"
+                FontSize="14"
+                Opacity="0.7"
+                HorizontalOptions="Center" />
+
+            <!-- Avviso filtro luce blu (best-effort), nascosto per default -->
+            <Border
+                x:Name="ReadingFilterBanner"
+                IsVisible="False"
+                Padding="12,8"
+                BackgroundColor="#FFF3CD">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8" />
+                </Border.StrokeShape>
+                <Label
+                    Text="Filtro luce blu attivo: disattivalo per una lettura migliore alla cassa."
+                    FontSize="12"
+                    TextColor="#664D03" />
+            </Border>
+
+            <!-- Area barcode: SEMPRE su sfondo bianco, anche in dark mode -->
+            <Border
+                Padding="16"
+                BackgroundColor="White"
+                HorizontalOptions="Fill">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Image
+                        Source="{Binding BarcodeImage}"
+                        IsVisible="{Binding BarcodeAvailable}"
+                        Aspect="AspectFit"
+                        HeightRequest="240"
+                        HorizontalOptions="Center" />
+
+                    <Label
+                        Text="Impossibile generare il codice: mostra il numero al cassiere."
+                        IsVisible="{Binding BarcodeUnavailable}"
+                        FontSize="13"
+                        TextColor="#B00020"
+                        HorizontalTextAlignment="Center" />
+
+                    <!-- Codice in chiaro: SEMPRE visibile -->
+                    <Label
+                        Text="{Binding BarcodeValue}"
+                        FontSize="22"
+                        FontAttributes="Bold"
+                        TextColor="Black"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

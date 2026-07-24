@@ -15,7 +15,10 @@
         <ToolbarItem Text="Aggiungi" Clicked="OnAddClicked" />
     </ContentPage.ToolbarItems>
 
-    <CollectionView ItemsSource="{Binding Cards}">
+    <CollectionView
+        ItemsSource="{Binding Cards}"
+        SelectionMode="Single"
+        SelectionChanged="OnCardSelected">
 
         <CollectionView.ItemsLayout>
             <GridItemsLayout

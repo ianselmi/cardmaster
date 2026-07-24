@@ -11,5 +11,6 @@ public partial class AppShell : Shell
 		// Rotte per la navigazione di acquisizione carta.
 		Routing.RegisterRoute("ScanPage", typeof(ScanPage));
 		Routing.RegisterRoute("AddCardPage", typeof(AddCardPage));
+		Routing.RegisterRoute("ShowCardPage", typeof(ShowCardPage));
 	}
 }

@@ -1,3 +1,4 @@
+using CardMaster.Data;
 using CardMaster.ViewModels;
 
 namespace CardMaster.Views;
@@ -21,4 +22,17 @@ public partial class CardListPage : ContentPage
 
     private async void OnAddClicked(object? sender, EventArgs e)
         => await Shell.Current.GoToAsync("ScanPage");
+
+    private async void OnCardSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not Card card)
+        {
+            return;
+        }
+
+        // Deseleziona subito, così il tap successivo sulla stessa carta funziona.
+        ((CollectionView)sender!).SelectedItem = null;
+
+        await Shell.Current.GoToAsync($"ShowCardPage?id={Uri.EscapeDataString(card.Id)}");
+    }
 }

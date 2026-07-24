@@ -52,4 +52,26 @@ public static class BarcodeFormatCatalog
         BarcodeFormats.Pdf417 => Pdf417,
         _ => null,
     };
+
+    /// <summary>
+    /// Converte la stringa di formato nel corrispondente enum di ZXing (per il rendering),
+    /// oppure null se non mappabile.
+    /// </summary>
+    public static ZXing.BarcodeFormat? ToZXing(string? format) => format switch
+    {
+        Ean13 => ZXing.BarcodeFormat.EAN_13,
+        Ean8 => ZXing.BarcodeFormat.EAN_8,
+        UpcA => ZXing.BarcodeFormat.UPC_A,
+        UpcE => ZXing.BarcodeFormat.UPC_E,
+        Code128 => ZXing.BarcodeFormat.CODE_128,
+        Code39 => ZXing.BarcodeFormat.CODE_39,
+        Itf => ZXing.BarcodeFormat.ITF,
+        Codabar => ZXing.BarcodeFormat.CODABAR,
+        QrCode => ZXing.BarcodeFormat.QR_CODE,
+        Pdf417 => ZXing.BarcodeFormat.PDF_417,
+        _ => null,
+    };
+
+    /// <summary>Vero per i formati bidimensionali (QR, PDF417).</summary>
+    public static bool Is2D(string? format) => format is QrCode or Pdf417;
 }

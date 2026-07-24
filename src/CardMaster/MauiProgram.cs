@@ -38,12 +38,17 @@ public static class MauiProgram
 		// Storage cifrato: chiave nel Keystore -> passphrase SQLCipher -> DB.
 #if ANDROID
 		services.AddSingleton<IKeyStoreService, Platforms.Android.Services.KeyStoreService>();
+		services.AddSingleton<IScreenBrightnessController, Platforms.Android.Services.ScreenBrightnessController>();
+		services.AddSingleton<IReadingFilterProbe, Platforms.Android.Services.ReadingFilterProbe>();
 #endif
 		services.AddSingleton<IDatabaseService, DatabaseService>();
 		services.AddSingleton<ICardRepository, CardRepository>();
 
 		// Catalogo emittenti: seed statico bundle, read-only, offline.
 		services.AddSingleton<IIssuerCatalog, IssuerCatalog>();
+
+		// Rendering barcode (ZXing.Net + SkiaSharp).
+		services.AddSingleton<IBarcodeRenderer, BarcodeRenderer>();
 
 		// Navigazione / UI
 		services.AddSingleton<AppShell>();
@@ -54,5 +59,9 @@ public static class MauiProgram
 		services.AddTransient<ScanPage>();
 		services.AddTransient<AddCardPage>();
 		services.AddTransient<AddCardViewModel>();
+
+		// Visualizzazione carta (barcode a schermo).
+		services.AddTransient<ShowCardPage>();
+		services.AddTransient<ShowCardViewModel>();
 	}
 }
