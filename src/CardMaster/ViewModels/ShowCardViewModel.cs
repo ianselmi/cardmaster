@@ -19,6 +19,7 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
     private ImageSource? _barcodeImage;
     private bool _barcodeAvailable;
     private bool _loaded;
+    private bool _lastUsedTouched;
 
     public ShowCardViewModel(ICardRepository cards, IBarcodeRenderer renderer)
     {
@@ -103,6 +104,15 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
         var result = _renderer.Render(card.Barcode, card.BarcodeFormat);
         BarcodeImage = result.Image;
         BarcodeAvailable = result.Succeeded;
+
+        // "Uso" = prima apertura riuscita di questa pagina. _loaded viene resettato da
+        // ReloadAsync per ricaricare i dati dopo una modifica, ma quel reload non è un
+        // nuovo "uso": _lastUsedTouched non viene mai resettato, quindi il touch scatta una sola volta.
+        if (!_lastUsedTouched)
+        {
+            _lastUsedTouched = true;
+            await _cards.TouchLastUsedAsync(_cardId);
+        }
     }
 
     /// <summary>Eliminazione logica (tombstone) della carta corrente.</summary>

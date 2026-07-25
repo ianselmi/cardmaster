@@ -70,6 +70,36 @@ public sealed class CardRepository : ICardRepository
         return existing is not null;
     }
 
+    public async Task TouchLastUsedAsync(string id)
+    {
+        var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
+        var card = await connection.Table<Card>()
+            .Where(c => c.Id == id && c.DeletedAt == null)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+
+        if (card is null)
+        {
+            return;
+        }
+
+        card.LastUsedAt = DateTimeOffset.UtcNow;
+
+        // Solo LastUsedAt: non è una modifica dei dati della carta, UpdatedAt resta invariato.
+        await connection.UpdateAsync(card).ConfigureAwait(false);
+    }
+
+    public async Task<List<Card>> GetRecentlyUsedAsync(int count)
+    {
+        var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
+        return await connection.Table<Card>()
+            .Where(c => c.DeletedAt == null && c.LastUsedAt != null)
+            .OrderByDescending(c => c.LastUsedAt)
+            .Take(count)
+            .ToListAsync()
+            .ConfigureAwait(false);
+    }
+
     public async Task SoftDeleteAsync(string id)
     {
         var connection = await _database.GetConnectionAsync().ConfigureAwait(false);

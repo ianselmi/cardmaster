@@ -23,4 +23,7 @@ public class Card : EntityBase
 
     /// <summary>Id del logo nel catalogo emittenti, opzionale.</summary>
     public string? LogoId { get; set; }
+
+    /// <summary>Data/ora dell'ultima apertura della carta (pagina barcode), se mai aperta.</summary>
+    public DateTimeOffset? LastUsedAt { get; set; }
 }

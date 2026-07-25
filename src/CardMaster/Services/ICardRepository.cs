@@ -25,4 +25,10 @@ public interface ICardRepository
 
     /// <summary>Vero se esiste una carta attiva (non tombstone) con lo stesso barcode.</summary>
     Task<bool> AnyActiveByBarcodeAsync(string barcode);
+
+    /// <summary>Registra l'istante corrente come ultimo utilizzo della carta (non tocca <c>UpdatedAt</c>).</summary>
+    Task TouchLastUsedAsync(string id);
+
+    /// <summary>Carte attive più recentemente usate (tombstone e mai-usate esclusi), più recenti prima.</summary>
+    Task<List<Card>> GetRecentlyUsedAsync(int count);
 }

@@ -19,66 +19,135 @@
             Clicked="OnSettingsClicked" />
     </ContentPage.ToolbarItems>
 
-    <CollectionView
-        ItemsSource="{Binding Cards}"
-        SelectionMode="Single"
-        SelectionChanged="OnCardSelected">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="{StaticResource ItemSpacing}">
 
-        <CollectionView.ItemsLayout>
-            <GridItemsLayout
-                Orientation="Vertical"
-                Span="2"
-                HorizontalItemSpacing="12"
-                VerticalItemSpacing="12" />
-        </CollectionView.ItemsLayout>
+        <SearchBar
+            Grid.Row="0"
+            Margin="{StaticResource PagePadding}"
+            Placeholder="Cerca per nome o emittente"
+            Text="{Binding SearchText}" />
 
-        <CollectionView.EmptyView>
-            <VerticalStackLayout
-                Padding="{StaticResource PagePadding}"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Spacing="{StaticResource ItemSpacing}">
-                <Label
-                    Text="Nessuna carta ancora"
-                    FontSize="{StaticResource FontSizeTitle}"
-                    HorizontalOptions="Center" />
-                <Label
-                    Text="Le carte scansionate compariranno qui."
-                    Style="{StaticResource CaptionLabel}"
-                    HorizontalOptions="Center" />
-            </VerticalStackLayout>
-        </CollectionView.EmptyView>
+        <Label
+            Grid.Row="1"
+            Margin="20,-8,20,0"
+            Text="{Binding CountText}"
+            Style="{StaticResource CaptionLabel}" />
 
-        <CollectionView.ItemTemplate>
-            <DataTemplate x:DataType="data:Card">
-                <Border
-                    Margin="4"
-                    HeightRequest="160"
-                    BackgroundColor="{Binding DisplayName, Converter={StaticResource NameToTileColor}}"
-                    StrokeThickness="0">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="20" />
-                    </Border.StrokeShape>
+        <Label
+            Grid.Row="2"
+            Margin="20,4,20,0"
+            Text="Usate di recente"
+            Style="{StaticResource CaptionLabel}"
+            IsVisible="{Binding HasRecentCards}" />
 
-                    <VerticalStackLayout Padding="16" VerticalOptions="End" Spacing="2">
-                        <Label
-                            Text="{Binding DisplayName}"
-                            TextColor="White"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            LineBreakMode="TailTruncation"
-                            MaxLines="2" />
-                        <Label
-                            Text="{Binding IssuerName}"
-                            TextColor="White"
-                            Opacity="0.85"
-                            FontSize="12"
-                            LineBreakMode="TailTruncation" />
-                    </VerticalStackLayout>
-                </Border>
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
+        <CollectionView
+            Grid.Row="3"
+            Margin="20,4"
+            HeightRequest="90"
+            IsVisible="{Binding HasRecentCards}"
+            ItemsSource="{Binding RecentCards}"
+            SelectionMode="Single"
+            SelectionChanged="OnCardSelected">
 
-    </CollectionView>
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="12" />
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="data:Card">
+                    <Border
+                        WidthRequest="110"
+                        HeightRequest="90"
+                        BackgroundColor="{Binding DisplayName, Converter={StaticResource NameToTileColor}}"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Padding="10" VerticalOptions="End" Spacing="1">
+                            <Label
+                                Text="{Binding DisplayName}"
+                                TextColor="White"
+                                FontSize="13"
+                                FontAttributes="Bold"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="2" />
+                            <Label
+                                Text="{Binding IssuerName}"
+                                TextColor="White"
+                                Opacity="0.85"
+                                FontSize="10"
+                                LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+        <CollectionView
+            Grid.Row="4"
+            ItemsSource="{Binding FilteredCards}"
+            SelectionMode="Single"
+            SelectionChanged="OnCardSelected">
+
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout
+                    Orientation="Vertical"
+                    Span="2"
+                    HorizontalItemSpacing="12"
+                    VerticalItemSpacing="12" />
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.EmptyView>
+                <VerticalStackLayout
+                    Padding="{StaticResource PagePadding}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    Spacing="{StaticResource ItemSpacing}">
+                    <Label
+                        Text="{Binding EmptyStateTitle}"
+                        FontSize="{StaticResource FontSizeTitle}"
+                        HorizontalOptions="Center" />
+                    <Label
+                        Text="{Binding EmptyStateSubtitle}"
+                        Style="{StaticResource CaptionLabel}"
+                        HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="data:Card">
+                    <Border
+                        Margin="4"
+                        HeightRequest="160"
+                        BackgroundColor="{Binding DisplayName, Converter={StaticResource NameToTileColor}}"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="20" />
+                        </Border.StrokeShape>
+
+                        <VerticalStackLayout Padding="16" VerticalOptions="End" Spacing="2">
+                            <Label
+                                Text="{Binding DisplayName}"
+                                TextColor="White"
+                                FontSize="18"
+                                FontAttributes="Bold"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="2" />
+                            <Label
+                                Text="{Binding IssuerName}"
+                                TextColor="White"
+                                Opacity="0.85"
+                                FontSize="12"
+                                LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+    </Grid>
 
 </ContentPage>
