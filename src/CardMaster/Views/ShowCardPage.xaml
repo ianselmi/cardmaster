@@ -6,12 +6,11 @@
     Title="{Binding DisplayName}">
 
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="16">
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
 
             <Label
                 Text="{Binding IssuerName}"
-                FontSize="14"
-                Opacity="0.7"
+                Style="{StaticResource CaptionLabel}"
                 HorizontalOptions="Center" />
 
             <!-- Avviso filtro luce blu (best-effort), nascosto per default -->
@@ -56,7 +55,7 @@
                     <!-- Codice in chiaro: SEMPRE visibile -->
                     <Label
                         Text="{Binding BarcodeValue}"
-                        FontSize="22"
+                        FontSize="{StaticResource FontSizeTitle}"
                         FontAttributes="Bold"
                         TextColor="Black"
                         HorizontalTextAlignment="Center" />

@@ -1,7 +1,21 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
-<ResourceDictionary 
+<ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Scala tipografica e spaziature condivise (change maui-restyle) -->
+    <x:Double x:Key="FontSizeTitle">22</x:Double>
+    <x:Double x:Key="FontSizeBody">16</x:Double>
+    <x:Double x:Key="FontSizeCaption">13</x:Double>
+    <Thickness x:Key="PagePadding">20</Thickness>
+    <x:Double x:Key="SectionSpacing">16</x:Double>
+    <x:Double x:Key="ItemSpacing">8</x:Double>
+
+    <!-- Etichetta secondaria (caption) usata per label di sezione e sottotitoli -->
+    <Style TargetType="Label" x:Key="CaptionLabel">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
+        <Setter Property="Opacity" Value="0.7" />
+    </Style>
 
     <Style TargetType="ActivityIndicator">
         <Setter Property="Color" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />

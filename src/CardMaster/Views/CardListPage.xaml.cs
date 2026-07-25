@@ -23,6 +23,9 @@ public partial class CardListPage : ContentPage
     private async void OnAddClicked(object? sender, EventArgs e)
         => await Shell.Current.GoToAsync("ScanPage");
 
+    private async void OnSettingsClicked(object? sender, EventArgs e)
+        => await Shell.Current.GoToAsync("SettingsPage");
+
     private async void OnCardSelected(object? sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection.FirstOrDefault() is not Card card)

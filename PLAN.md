@@ -59,6 +59,8 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 - [ ] **`maui-edit-card`** — modifica dei dati di una carta esistente (nome, emittente, colore; eventualmente barcode/formato), con salvataggio via repository (aggiorna `UpdatedAt`)
 - [ ] **`maui-restyle`** — restyle grafico complessivo: nuovo **logo** (app icon + splash) e **palette colori** (tema/accent, colori dei tile), coerenza di tipografia e spaziature sulle pagine esistenti
 - [ ] **`maui-share-qr`** — genera un QR code self-contained con i dati della carta (payload versionato); import scansionando il QR di un altro device; controllo duplicati alla ricezione
+- [ ] **`maui-settings`** — sezione **Impostazioni**: pagina raggiungibile dalla lista carte, store delle preferenze (MAUI `Preferences`), info app (versione), e punto d'accesso al backup. Prima base per i toggle applicativi (es. "fai il backup")
+- [ ] **`maui-backup-local`** — backup/ripristino del DB come **file esportabile** (share sheet / storage locale), 100% offline e coerente col vincolo v1. *(Decisione 25 lug 2026: il backup su **Google Drive** è stato valutato ma rimandato — richiederebbe Google Sign-In/OAuth e rete, che il PLAN colloca in v2; resta come possibile feature online opt-in successiva, vedi v2.)*
 - [x] **`ci-build-apk`** — pipeline di build (GitHub Actions) che compila l'app MAUI Android, **firma** l'APK con keystore (secret CI), e pubblica l'artifact/APK come GitHub Release; versionamento automatico (`ApplicationVersion`/`ApplicationDisplayVersion`). *(Prerequisito utente: creare keystore + secret — vedi `docs/ci-release.md`.)*
 - [ ] **`maui-auto-update`** — controllo nuove versioni interrogando un **manifest su server** (es. `latest.json` con `versionCode`, `versionName`, `url`, `sha256`); se più recente della versione installata, scarica l'APK, **verifica il checksum/firma**, e lancia l'installazione via package installer intent (`REQUEST_INSTALL_PACKAGES`). Funzione online opzionale: non tocca il core offline
 
@@ -83,6 +85,7 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 
 **Chiusura**
 - [ ] **`deploy-hardening`** — reverse proxy con TLS automatico, healthcheck, backup schedulato con `VACUUM INTO`, restart policy
+- [ ] **`maui-backup-drive`** *(opzionale)* — backup del DB su **Google Drive** come feature online opt-in: Google Sign-In (OAuth Authorization Code + PKCE, nessun client secret nell'APK), upload/download del file di backup su Drive dell'utente. Rimandato dalla v1 (vedi `maui-backup-local`) per non introdurre auth Google nel core offline
 
 ---
 

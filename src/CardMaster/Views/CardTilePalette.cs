@@ -9,19 +9,21 @@ namespace CardMaster.Views;
 /// </summary>
 public static class CardTilePalette
 {
-    // Colori sufficientemente scuri/saturi da leggere bene con testo bianco.
+    // Palette allineata al brand ambra/arancio (change maui-restyle). Toni scuri/saturi
+    // per leggere bene con testo bianco. Nessun tile coincide con l'ambra dei controlli
+    // (Primary #E07B1A), per non confondere colore-azione e colore-carta.
     private static readonly Color[] Colors =
     {
-        Color.FromArgb("#E2001A"), // rosso
-        Color.FromArgb("#004996"), // blu
-        Color.FromArgb("#0082C3"), // azzurro
-        Color.FromArgb("#2E7D32"), // verde
-        Color.FromArgb("#6A1B9A"), // viola
-        Color.FromArgb("#EF6C00"), // arancio
-        Color.FromArgb("#00838F"), // teal
-        Color.FromArgb("#AD1457"), // magenta
-        Color.FromArgb("#4527A0"), // indaco
-        Color.FromArgb("#37474F"), // blu-grigio
+        Color.FromArgb("#C2410C"), // arancio bruciato
+        Color.FromArgb("#B45309"), // ambra scuro
+        Color.FromArgb("#0F766E"), // teal
+        Color.FromArgb("#1D4ED8"), // blu
+        Color.FromArgb("#15803D"), // verde
+        Color.FromArgb("#7C3AED"), // viola
+        Color.FromArgb("#BE185D"), // magenta
+        Color.FromArgb("#0369A1"), // azzurro
+        Color.FromArgb("#4338CA"), // indaco
+        Color.FromArgb("#334155"), // slate
     };
 
     /// <summary>Colore del tile derivato dal nome (indice = hash stabile % N).</summary>

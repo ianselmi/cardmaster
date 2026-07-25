@@ -15,19 +15,18 @@
         <VerticalStackLayout
             x:Name="PermissionDeniedPanel"
             IsVisible="False"
-            Padding="24"
+            Padding="{StaticResource PagePadding}"
             HorizontalOptions="Center"
             VerticalOptions="Center"
-            Spacing="8">
+            Spacing="{StaticResource ItemSpacing}">
             <Label
                 Text="Permesso camera negato"
-                FontSize="18"
+                FontSize="{StaticResource FontSizeTitle}"
                 HorizontalOptions="Center" />
             <Label
                 Text="Puoi comunque inserire il codice a mano."
-                FontSize="13"
-                HorizontalOptions="Center"
-                Opacity="0.7" />
+                Style="{StaticResource CaptionLabel}"
+                HorizontalOptions="Center" />
         </VerticalStackLayout>
 
         <Button

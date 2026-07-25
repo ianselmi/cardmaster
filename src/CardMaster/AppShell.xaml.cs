@@ -12,5 +12,8 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute("ScanPage", typeof(ScanPage));
 		Routing.RegisterRoute("AddCardPage", typeof(AddCardPage));
 		Routing.RegisterRoute("ShowCardPage", typeof(ShowCardPage));
+
+		// Rotta della pagina Impostazioni.
+		Routing.RegisterRoute("SettingsPage", typeof(SettingsPage));
 	}
 }

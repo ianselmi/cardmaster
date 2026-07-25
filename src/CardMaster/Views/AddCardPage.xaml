@@ -6,15 +6,15 @@
     Title="Nuova carta">
 
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="16">
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
 
             <VerticalStackLayout Spacing="4">
-                <Label Text="Codice a barre" FontSize="13" Opacity="0.7" />
+                <Label Text="Codice a barre" Style="{StaticResource CaptionLabel}" />
                 <Entry Text="{Binding Barcode}" Keyboard="Default" Placeholder="Numero del codice" />
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="4">
-                <Label Text="Formato" FontSize="13" Opacity="0.7" />
+                <Label Text="Formato" Style="{StaticResource CaptionLabel}" />
                 <Picker
                     ItemsSource="{Binding Formats}"
                     SelectedItem="{Binding SelectedFormat}"
@@ -22,7 +22,7 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="4">
-                <Label Text="Emittente" FontSize="13" Opacity="0.7" />
+                <Label Text="Emittente" Style="{StaticResource CaptionLabel}" />
                 <Picker
                     ItemsSource="{Binding IssuerOptions}"
                     SelectedItem="{Binding SelectedIssuerOption}" />
@@ -33,7 +33,7 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="4">
-                <Label Text="Nome della carta" FontSize="13" Opacity="0.7" />
+                <Label Text="Nome della carta" Style="{StaticResource CaptionLabel}" />
                 <Entry Text="{Binding DisplayName}" Placeholder="Come vuoi chiamarla" />
             </VerticalStackLayout>
 

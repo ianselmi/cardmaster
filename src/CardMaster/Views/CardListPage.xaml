@@ -13,6 +13,10 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Aggiungi" Clicked="OnAddClicked" />
+        <ToolbarItem
+            Text="Impostazioni"
+            IconImageSource="settings.png"
+            Clicked="OnSettingsClicked" />
     </ContentPage.ToolbarItems>
 
     <CollectionView
@@ -30,19 +34,18 @@
 
         <CollectionView.EmptyView>
             <VerticalStackLayout
-                Padding="24"
+                Padding="{StaticResource PagePadding}"
                 HorizontalOptions="Center"
                 VerticalOptions="Center"
-                Spacing="8">
+                Spacing="{StaticResource ItemSpacing}">
                 <Label
                     Text="Nessuna carta ancora"
-                    FontSize="18"
+                    FontSize="{StaticResource FontSizeTitle}"
                     HorizontalOptions="Center" />
                 <Label
                     Text="Le carte scansionate compariranno qui."
-                    FontSize="13"
-                    HorizontalOptions="Center"
-                    Opacity="0.7" />
+                    Style="{StaticResource CaptionLabel}"
+                    HorizontalOptions="Center" />
             </VerticalStackLayout>
         </CollectionView.EmptyView>
 

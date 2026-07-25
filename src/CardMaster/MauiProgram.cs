@@ -47,6 +47,9 @@ public static class MauiProgram
 		// Catalogo emittenti: seed statico bundle, read-only, offline.
 		services.AddSingleton<IIssuerCatalog, IssuerCatalog>();
 
+		// Preferenze utente (chiave/valore locale su Preferences).
+		services.AddSingleton<ISettingsStore, SettingsStore>();
+
 		// Rendering barcode (ZXing.Net + SkiaSharp).
 		services.AddSingleton<IBarcodeRenderer, BarcodeRenderer>();
 
@@ -63,5 +66,9 @@ public static class MauiProgram
 		// Visualizzazione carta (barcode a schermo).
 		services.AddTransient<ShowCardPage>();
 		services.AddTransient<ShowCardViewModel>();
+
+		// Impostazioni: pagina e VM transient.
+		services.AddTransient<SettingsPage>();
+		services.AddTransient<SettingsViewModel>();
 	}
 }
