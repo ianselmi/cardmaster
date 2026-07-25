@@ -6,7 +6,6 @@ App per conservare e mostrare i codici a barre delle **carte fedeltà**. Offline
 - **v1 — core offline, con un solo tassello online opt-in.** Aprire, scansionare e condividere le carte gira interamente sul device: salvataggio locale, sblocco biometrico, condivisione tramite **QR code self-contained** (contiene tutti i dati della carta, letto da un altro device). Nessuna auth online, nessuna sincronizzazione. L'unica funzione di rete è il **backup su Google Drive** (`maui-backup-drive`): opt-in, disattivabile, isolato dietro interfacce — se disabilitato o senza rete l'app resta 100% funzionale offline. *(Decisione 25 lug 2026: il backup Drive, inizialmente rimandato a v2, rimpiazza `maui-backup-local` e torna in v1 — vedi `openspec/changes/maui-backup-drive`.)*
 - **v2 — backend e sincronizzazione (rimandato).** Si aggiunge il backend .NET 10 per auth online, sincronizzazione multi-device e account applicativo. Progettiamo la v1 in modo che questa evoluzione sia possibile senza migrazioni dolorose.
 
-> Fonte: analisi architetturale del 23–24 lug 2026 ([chat condivisa](https://claude.ai/share/f4ff8eb8-1470-4a8a-8103-43019873384c)), con la decisione di partire da una v1 100% offline. Le feature vengono tracciate con **OpenSpec**. Spunta i punti man mano che vengono completati.
 
 ---
 
