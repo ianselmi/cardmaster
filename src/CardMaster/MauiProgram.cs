@@ -67,6 +67,10 @@ public static class MauiProgram
 		services.AddTransient<ShowCardPage>();
 		services.AddTransient<ShowCardViewModel>();
 
+		// Modifica carta: pagina e VM transient per stato fresco.
+		services.AddTransient<EditCardPage>();
+		services.AddTransient<EditCardViewModel>();
+
 		// Impostazioni: pagina e VM transient.
 		services.AddTransient<SettingsPage>();
 		services.AddTransient<SettingsViewModel>();

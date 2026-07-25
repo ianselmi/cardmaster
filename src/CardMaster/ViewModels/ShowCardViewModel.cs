@@ -70,6 +70,16 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
     /// <summary>Esito del caricamento: false se la carta non esiste (la pagina torna indietro).</summary>
     public bool CardExists { get; private set; }
 
+    /// <summary>Id della carta corrente (per modifica/eliminazione).</summary>
+    public string CardId => _cardId;
+
+    /// <summary>Ricarica i dati della carta (usato al ritorno dalla modifica).</summary>
+    public Task ReloadAsync()
+    {
+        _loaded = false;
+        return LoadAsync();
+    }
+
     public async Task LoadAsync()
     {
         if (_loaded)
@@ -94,6 +104,9 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
         BarcodeImage = result.Image;
         BarcodeAvailable = result.Succeeded;
     }
+
+    /// <summary>Eliminazione logica (tombstone) della carta corrente.</summary>
+    public Task DeleteAsync() => _cards.SoftDeleteAsync(_cardId);
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {

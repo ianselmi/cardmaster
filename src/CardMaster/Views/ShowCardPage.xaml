@@ -5,6 +5,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title="{Binding DisplayName}">
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Modifica" Clicked="OnEditClicked" />
+        <ToolbarItem Text="Elimina" Clicked="OnDeleteClicked" />
+    </ContentPage.ToolbarItems>
+
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
 
