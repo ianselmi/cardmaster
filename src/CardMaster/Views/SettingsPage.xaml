@@ -3,7 +3,12 @@
     x:Class="CardMaster.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:CardMaster.Views"
     Title="Impostazioni">
+
+    <ContentPage.Resources>
+        <views:BackupStatusToColorConverter x:Key="BackupStatusToColor" />
+    </ContentPage.Resources>
 
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
@@ -24,7 +29,11 @@
 
             <VerticalStackLayout Spacing="4">
                 <Label Text="Dati" Style="{StaticResource CaptionLabel}" />
-                <Button Text="Backup su Google Drive" Clicked="OnBackupClicked" />
+                <Button
+                    Text="Backup su Google Drive"
+                    Clicked="OnBackupClicked"
+                    BackgroundColor="{Binding IsBackupEnabled, Converter={StaticResource BackupStatusToColor}}" />
+                <Label Text="{Binding BackupStatusText}" Style="{StaticResource CaptionLabel}" />
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="4">
