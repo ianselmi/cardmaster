@@ -55,7 +55,7 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 - [x] **`maui-scan-card`** — scansione ML Kit, formati EAN-13/EAN-8/UPC-A/UPC-E/Code128/Code39/ITF/Codabar/QR/PDF417, inserimento manuale, emittente opzionale dal seed, avviso duplicati, salvataggio locale (Id client-generato, tombstone)
 - [x] **`maui-card-grid`** — lista carte come griglia di riquadri (2 colonne, quadrettoni con angoli arrotondati), colore di sfondo generato in modo deterministico per carta
 - [x] **`maui-show-card`** — rendering del barcode (ZXing.Net + SkiaSharp), luminosità al massimo e blocco spegnimento schermo, codice in chiaro come fallback, avviso filtro luce blu best-effort
-- [ ] **`maui-card-search`** — ricerca tra le carte (per nome/emittente) e barra aggiuntiva con le **ultime 3 carte usate** (richiede tracciare un timestamp "ultimo utilizzo" all'apertura della carta)
+- [x] **`maui-card-search`** — ricerca tra le carte (per nome/emittente) e barra aggiuntiva con le **ultime 3 carte usate** (richiede tracciare un timestamp "ultimo utilizzo" all'apertura della carta)
 - [x] **`maui-edit-card`** — modifica dei dati di una carta esistente (nome, emittente, colore; eventualmente barcode/formato), con salvataggio via repository (aggiorna `UpdatedAt`)
 - [x] **`maui-restyle`** — restyle grafico complessivo: nuovo **logo** (app icon + splash) e **palette colori** (tema/accent, colori dei tile), coerenza di tipografia e spaziature sulle pagine esistenti
 - [x] **`maui-share-qr`** — genera un QR code self-contained con i dati della carta (payload versionato); import scansionando il QR di un altro device; controllo duplicati alla ricezione
