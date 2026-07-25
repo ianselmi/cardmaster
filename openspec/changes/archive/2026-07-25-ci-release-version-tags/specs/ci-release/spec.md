@@ -1,43 +1,4 @@
-# ci-release
-
-## Purpose
-
-Pipeline di build, firma e pubblicazione dell'APK Android come Release GitHub, con versionamento automatico. Distribuzione fuori dal Play Store (hosting statico dell'APK).
-
-## Requirements
-
-### Requirement: Build dell'APK Android in CI
-
-Il sistema SHALL fornire una pipeline CI (GitHub Actions) che compila l'app MAUI Android in configurazione Release e produce un file **APK** (non solo AAB) installabile via sideload.
-
-#### Scenario: Build su push in main
-
-- **WHEN** viene effettuato un push sul branch `main`
-- **THEN** la pipeline compila l'app in Release e produce un APK
-
-#### Scenario: Avvio manuale
-
-- **WHEN** la pipeline viene avviata manualmente (workflow_dispatch)
-- **THEN** compila l'app in Release e produce un APK
-
-### Requirement: Firma dell'APK con keystore da secret
-
-Il sistema SHALL firmare l'APK con un keystore custodito come **secret CI**. Il keystore NON MUST essere presente nel repository. La configurazione di firma nel progetto SHALL essere condizionale, così che le build locali senza keystore continuino a funzionare.
-
-#### Scenario: Firma in CI
-
-- **WHEN** la pipeline compila con i secret del keystore configurati
-- **THEN** l'APK prodotto è firmato con quel keystore
-
-#### Scenario: Build locale senza keystore
-
-- **WHEN** si compila localmente senza i secret del keystore
-- **THEN** la build non fallisce per la mancanza del keystore (firma di release non richiesta)
-
-#### Scenario: Nessun keystore nel repository
-
-- **WHEN** si ispeziona il repository
-- **THEN** non è presente alcun file keystore né password in chiaro
+## MODIFIED Requirements
 
 ### Requirement: Versionamento automatico
 

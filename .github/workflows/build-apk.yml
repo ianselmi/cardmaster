@@ -37,11 +37,13 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             echo "name=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
-            echo "release_tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "version_tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "is_main=false" >> "$GITHUB_OUTPUT"
           else
-            echo "name=1.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "name=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
             echo "prerelease=true" >> "$GITHUB_OUTPUT"
-            echo "release_tag=latest" >> "$GITHUB_OUTPUT"
+            echo "version_tag=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "is_main=true" >> "$GITHUB_OUTPUT"
           fi
           echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
@@ -71,11 +73,21 @@ jobs:
           echo "path=$APK" >> "$GITHUB_OUTPUT"
           echo "Trovato APK: $APK"
 
-      - name: Publish Release
+      - name: Publish versioned release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.ver.outputs.release_tag }}
+          tag_name: ${{ steps.ver.outputs.version_tag }}
           prerelease: ${{ steps.ver.outputs.prerelease }}
-          name: ${{ steps.ver.outputs.release_tag == 'latest' && steps.ver.outputs.name || steps.ver.outputs.release_tag }}
+          name: ${{ steps.ver.outputs.name }}
+          files: ${{ steps.apk.outputs.path }}
+          fail_on_unmatched_files: true
+
+      - name: Update latest prerelease
+        if: steps.ver.outputs.is_main == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          prerelease: true
+          name: ${{ steps.ver.outputs.name }}
           files: ${{ steps.apk.outputs.path }}
           fail_on_unmatched_files: true
