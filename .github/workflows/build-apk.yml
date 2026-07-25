@@ -1,7 +1,7 @@
 name: Build APK
 
 # Titolo del run in Actions: mostra il numero di build invece del messaggio di commit.
-run-name: Build #${{ github.run_number }}
+run-name: "Build #${{ github.run_number }}"
 
 on:
   push:
