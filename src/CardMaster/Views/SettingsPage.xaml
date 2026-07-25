@@ -22,6 +22,11 @@
                 <Label Text="{Binding AppVersion}" Style="{StaticResource CaptionLabel}" />
             </VerticalStackLayout>
 
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Dati" Style="{StaticResource CaptionLabel}" />
+                <Button Text="Backup su Google Drive" Clicked="OnBackupClicked" />
+            </VerticalStackLayout>
+
         </VerticalStackLayout>
     </ScrollView>
 

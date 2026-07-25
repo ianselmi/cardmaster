@@ -17,5 +17,8 @@ public partial class AppShell : Shell
 
 		// Rotta della pagina Impostazioni.
 		Routing.RegisterRoute("SettingsPage", typeof(SettingsPage));
+
+		// Rotta della sezione Backup su Google Drive (raggiungibile dalle Impostazioni).
+		Routing.RegisterRoute("BackupPage", typeof(BackupPage));
 	}
 }

@@ -12,4 +12,9 @@ public partial class SettingsPage : ContentPage
         _viewModel = viewModel;
         BindingContext = _viewModel;
     }
+
+    private async void OnBackupClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("BackupPage");
+    }
 }

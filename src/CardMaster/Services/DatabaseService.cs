@@ -5,7 +5,8 @@ namespace CardMaster.Services;
 
 /// <summary>
 /// Apre e inizializza il database SQLite locale (in chiaro, v1). L'inizializzazione
-/// è idempotente e thread-safe.
+/// è idempotente e thread-safe. Espone snapshot (<c>VACUUM INTO</c>) e sostituzione atomica
+/// del file per il backup/ripristino su Google Drive.
 /// </summary>
 public sealed class DatabaseService : IDatabaseService
 {
@@ -14,6 +15,10 @@ public sealed class DatabaseService : IDatabaseService
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private SQLiteAsyncConnection? _connection;
+
+    public int CurrentSchemaVersion => SchemaVersion;
+
+    private static string DatabasePath => Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
 
     public async Task<SQLiteAsyncConnection> GetConnectionAsync()
     {
@@ -30,10 +35,8 @@ public sealed class DatabaseService : IDatabaseService
                 return _connection;
             }
 
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, DatabaseFileName);
-
             var connection = new SQLiteAsyncConnection(
-                dbPath,
+                DatabasePath,
                 SQLiteOpenFlags.ReadWrite | SQLiteOpenFlags.Create | SQLiteOpenFlags.SharedCache,
                 storeDateTimeAsTicks: true);
 
@@ -46,6 +49,61 @@ public sealed class DatabaseService : IDatabaseService
         finally
         {
             _gate.Release();
+        }
+    }
+
+    public async Task SnapshotAsync(string destinationPath)
+    {
+        var connection = await GetConnectionAsync().ConfigureAwait(false);
+
+        if (File.Exists(destinationPath))
+        {
+            File.Delete(destinationPath);
+        }
+
+        // VACUUM INTO non accetta parametri bind: il path è app-controlled (cache privata),
+        // ma raddoppiamo comunque gli apici per sicurezza.
+        var escaped = destinationPath.Replace("'", "''");
+        await connection.ExecuteAsync($"VACUUM INTO '{escaped}';").ConfigureAwait(false);
+    }
+
+    public async Task CloseAsync()
+    {
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (_connection is not null)
+            {
+                await _connection.CloseAsync().ConfigureAwait(false);
+                _connection = null;
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task ReplaceFromAsync(string sourcePath)
+    {
+        await CloseAsync().ConfigureAwait(false);
+
+        var dbPath = DatabasePath;
+        File.Copy(sourcePath, dbPath, overwrite: true);
+
+        // I sidecar WAL/SHM del vecchio DB non sono più coerenti col file appena sostituito.
+        DeleteIfExists(dbPath + "-wal");
+        DeleteIfExists(dbPath + "-shm");
+
+        // Riapertura lazy: ricrea la connessione e ri-applica schema/versione come all'avvio.
+        await GetConnectionAsync().ConfigureAwait(false);
+    }
+
+    private static void DeleteIfExists(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
         }
     }
 

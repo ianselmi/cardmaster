@@ -1,3 +1,5 @@
+using CardMaster.Services.Backup;
+
 namespace CardMaster.Services;
 
 /// <summary>
@@ -20,4 +22,22 @@ public interface ISettingsStore
 {
     /// <summary>Tema dell'app. Default <see cref="AppThemePreference.System"/> se mai impostato.</summary>
     AppThemePreference Theme { get; set; }
+
+    /// <summary>Backup su Google Drive abilitato. Default false (opt-in).</summary>
+    bool BackupEnabled { get; set; }
+
+    /// <summary>Frequenza del backup automatico. Default <see cref="BackupFrequency.Never"/>.</summary>
+    BackupFrequency BackupFrequency { get; set; }
+
+    /// <summary>Cache locale del timestamp UTC dell'ultimo backup riuscito (per la UI offline).</summary>
+    DateTimeOffset? LastBackupUtc { get; set; }
+
+    /// <summary>Cache locale della dimensione (byte) dell'ultimo backup riuscito.</summary>
+    long? LastBackupSize { get; set; }
+
+    /// <summary>Cache locale del limite di quota Drive (byte); null = illimitato o sconosciuto.</summary>
+    long? DriveQuotaLimit { get; set; }
+
+    /// <summary>Cache locale dell'uso di quota Drive (byte); null = sconosciuto.</summary>
+    long? DriveQuotaUsage { get; set; }
 }

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.BackupPage"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:CardMaster.ViewModels"
+    Title="Backup su Google Drive">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
+
+            <!-- Stato disabilitato: solo l'azione di abilitazione -->
+            <VerticalStackLayout IsVisible="{Binding IsDisabled}" Spacing="{StaticResource ItemSpacing}">
+                <Label
+                    Text="Il backup su Google Drive non è attivo. Abilitalo per mettere al sicuro le tue carte sul tuo account Google."
+                    Style="{StaticResource CaptionLabel}" />
+                <Button
+                    Text="Abilita backup su Google Drive"
+                    Command="{Binding EnableCommand}"
+                    IsEnabled="{Binding IsNotBusy}" />
+            </VerticalStackLayout>
+
+            <!-- Stato abilitato: informazioni e azioni -->
+            <VerticalStackLayout IsVisible="{Binding IsEnabled}" Spacing="{StaticResource SectionSpacing}">
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Account collegato" Style="{StaticResource CaptionLabel}" />
+                    <Label Text="{Binding AccountEmail}" FontSize="{StaticResource FontSizeBody}" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Ultimo backup" Style="{StaticResource CaptionLabel}" />
+                    <Label Text="{Binding LastBackupText}" FontSize="{StaticResource FontSizeBody}" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Spazio Drive" Style="{StaticResource CaptionLabel}" />
+                    <Label Text="{Binding QuotaText}" FontSize="{StaticResource FontSizeBody}" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Frequenza" Style="{StaticResource CaptionLabel}" />
+                    <Picker
+                        ItemsSource="{Binding FrequencyOptions}"
+                        SelectedItem="{Binding SelectedFrequency}"
+                        Title="Frequenza del backup" />
+                </VerticalStackLayout>
+
+                <Button
+                    Text="Fai backup ora"
+                    Command="{Binding BackupNowCommand}"
+                    IsEnabled="{Binding IsNotBusy}" />
+
+                <Button
+                    Text="Ripristina da un backup…"
+                    Command="{Binding LoadRestoreListCommand}"
+                    IsEnabled="{Binding IsNotBusy}" />
+
+                <CollectionView
+                    ItemsSource="{Binding Backups}"
+                    SelectionMode="None">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BackupListItem">
+                            <Grid Padding="0,8" ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource ItemSpacing}">
+                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                    <Label Text="{Binding DateText}" FontSize="{StaticResource FontSizeBody}" />
+                                    <Label Text="{Binding SizeText}" Style="{StaticResource CaptionLabel}" />
+                                </VerticalStackLayout>
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Ripristina"
+                                    Command="{Binding Source={x:Reference Root}, Path=BindingContext.RestoreCommand}"
+                                    CommandParameter="{Binding .}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Button
+                    Text="Disabilita backup"
+                    BackgroundColor="#B00020"
+                    TextColor="White"
+                    Command="{Binding DisableCommand}"
+                    IsEnabled="{Binding IsNotBusy}" />
+
+            </VerticalStackLayout>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

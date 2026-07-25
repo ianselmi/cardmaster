@@ -3,8 +3,8 @@
 App per conservare e mostrare i codici a barre delle **carte fedeltà**. Offline-first.
 
 **Strategia di rilascio:**
-- **v1 — completamente offline, nessun server.** Tutto gira sul device: scan, salvataggio locale, sblocco biometrico, e condivisione di una carta tramite **QR code self-contained** (contiene tutti i dati della carta, letto da un altro device). Nessuna auth online, nessuna sincronizzazione.
-- **v2 — backend e sincronizzazione (rimandato).** Si aggiunge il backend .NET 10 per auth online, backup e multi-device. Progettiamo la v1 in modo che questa evoluzione sia possibile senza migrazioni dolorose.
+- **v1 — core offline, con un solo tassello online opt-in.** Aprire, scansionare e condividere le carte gira interamente sul device: salvataggio locale, sblocco biometrico, condivisione tramite **QR code self-contained** (contiene tutti i dati della carta, letto da un altro device). Nessuna auth online, nessuna sincronizzazione. L'unica funzione di rete è il **backup su Google Drive** (`maui-backup-drive`): opt-in, disattivabile, isolato dietro interfacce — se disabilitato o senza rete l'app resta 100% funzionale offline. *(Decisione 25 lug 2026: il backup Drive, inizialmente rimandato a v2, rimpiazza `maui-backup-local` e torna in v1 — vedi `openspec/changes/maui-backup-drive`.)*
+- **v2 — backend e sincronizzazione (rimandato).** Si aggiunge il backend .NET 10 per auth online, sincronizzazione multi-device e account applicativo. Progettiamo la v1 in modo che questa evoluzione sia possibile senza migrazioni dolorose.
 
 > Fonte: analisi architetturale del 23–24 lug 2026 ([chat condivisa](https://claude.ai/share/f4ff8eb8-1470-4a8a-8103-43019873384c)), con la decisione di partire da una v1 100% offline. Le feature vengono tracciate con **OpenSpec**. Spunta i punti man mano che vengono completati.
 
@@ -14,8 +14,8 @@ App per conservare e mostrare i codici a barre delle **carte fedeltà**. Offline
 
 Questi vincoli vanno nel file di contesto di progetto di OpenSpec; ogni change deve rispettarli.
 
-### v1 (offline)
-- **Prodotto**: app Android, 100% offline. Aprire una carta, scansionarne una nuova e condividerla funzionano senza rete e senza account.
+### v1 (core offline + backup Drive opt-in)
+- **Prodotto**: app Android. Il core (aprire una carta, scansionarne una nuova, condividerla) funziona sempre senza rete e senza account. L'unica funzione online è il **backup su Google Drive**, opt-in e disattivabile (vedi `maui-backup-drive`).
 - **Client**: .NET MAUI (solo Android). SQLite locale **in chiaro** (`SQLitePCLRaw.bundle_e_sqlite3`). Scansione con **ML Kit** (`BarcodeScanning.Native.Maui`), rendering barcode con **ZXing.Net + SkiaSharp**. *(Decisione 24 lug 2026: rimossa la cifratura SQLCipher — il pacchetto `bundle_e_sqlcipher` è deprecato e la cifratura non è ritenuta essenziale per la v1. Eventuale reintroduzione: `SQLite3MC.PCLRaw.bundle`, mantenuto.)*
 - **Autenticazione v1**: **nessuna gate di sblocco applicativa**. L'app si apre direttamente sulla lista carte (nessun account, nessun server, nessun prompt biometrico o PIN). La protezione "telefono in mano ad altri" è delegata al lockscreen di Android. *(Decisione del 24 lug 2026: rimossi biometria e PIN applicativi rispetto all'ipotesi iniziale — l'app deve mostrare subito le carte.)*
 - **Modello dati**: le carte sono locali al device. `Id` carte generati dal **client** (GUID/ULID) — così restano validi quando in v2 arriverà la sync. Cancellazioni logiche con **tombstone** (mai DELETE fisico), già ora, per non complicare la futura sincronizzazione.
@@ -47,7 +47,7 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 
 ---
 
-## v1 — App offline (nessun server)
+## v1 — App offline + backup Drive opt-in
 
 - [x] **`maui-shell`** — progetto MAUI Android, navigazione, DI, SQLite locale con SQLCipher e chiave in Keystore
 - [~] **`maui-unlock`** — ~~biometria via `BiometricPrompt`, fallback PIN, gestione invalidazione della chiave al cambio impronte~~ **ANNULLATA** (24 lug 2026): decisa nessuna gate di sblocco: l'app apre subito le carte. La chiave del DB resta nel Keystore senza binding all'autenticazione utente (come già in `maui-shell`).
@@ -59,8 +59,8 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 - [x] **`maui-edit-card`** — modifica dei dati di una carta esistente (nome, emittente, colore; eventualmente barcode/formato), con salvataggio via repository (aggiorna `UpdatedAt`)
 - [x] **`maui-restyle`** — restyle grafico complessivo: nuovo **logo** (app icon + splash) e **palette colori** (tema/accent, colori dei tile), coerenza di tipografia e spaziature sulle pagine esistenti
 - [x] **`maui-share-qr`** — genera un QR code self-contained con i dati della carta (payload versionato); import scansionando il QR di un altro device; controllo duplicati alla ricezione
-- [x] **`maui-settings`** — sezione **Impostazioni**: pagina raggiungibile dalla lista carte (icona ruota dentata in toolbar), store delle preferenze (MAUI `Preferences`), info app (versione), e **preferenza tema** Sistema/Chiaro/Scuro persistita e applicata all'avvio. Predisposta come host della futura opzione di backup (implementata da `maui-backup-local`)
-- [ ] **`maui-backup-local`** — backup/ripristino del DB come **file esportabile** (share sheet / storage locale), 100% offline e coerente col vincolo v1. *(Decisione 25 lug 2026: il backup su **Google Drive** è stato valutato ma rimandato — richiederebbe Google Sign-In/OAuth e rete, che il PLAN colloca in v2; resta come possibile feature online opt-in successiva, vedi v2.)*
+- [x] **`maui-settings`** — sezione **Impostazioni**: pagina raggiungibile dalla lista carte (icona ruota dentata in toolbar), store delle preferenze (MAUI `Preferences`), info app (versione), e **preferenza tema** Sistema/Chiaro/Scuro persistita e applicata all'avvio. Predisposta come host della futura opzione di backup (implementata da `maui-backup-drive`)
+- [~] **`maui-backup-drive`** — backup/ripristino del database su **Google Drive** come **unica funzione di rete della v1**, opt-in e disattivabile: Google Sign-In (OAuth Authorization Code + PKCE, nessun client secret nell'APK), snapshot (`VACUUM INTO`) caricato come blob db3 opaco nella cartella `appdata`, ritenzione ultimi 3, ripristino con guardia di versione schema e snapshot di sicurezza, schedulazione (Mai/A ogni apertura/Giornaliero/Settimanale), notifica di avanzamento stile WhatsApp. *(Decisione 25 lug 2026: rimpiazza l'idea `maui-backup-local` — file esportabile — e viene anticipato da v2 a v1, vedi `openspec/changes/maui-backup-drive`. Manca ancora la creazione manuale dell'OAuth client su Google Cloud Console, vedi `docs/google-drive-backup.md`.)*
 - [x] **`ci-build-apk`** — pipeline di build (GitHub Actions) che compila l'app MAUI Android, **firma** l'APK con keystore (secret CI), e pubblica l'artifact/APK come GitHub Release; versionamento automatico (`ApplicationVersion`/`ApplicationDisplayVersion`). *(Prerequisito utente: creare keystore + secret — vedi `docs/ci-release.md`.)*
   - [x] **`ci-release-app-version`** — il titolo della prerelease `latest` su `main` mostra il versionName dell'app (`ApplicationDisplayVersion`) invece dell'etichetta fissa "Ultima build (main)", così release e versione installata coincidono.
   - [x] **`ci-release-version-tags`** — la versione dell'app diventa il **numero di build incrementale** (`8`, `9`, `10`…); ogni build su `main` crea una Release versionata taggata col numero di build (storico con APK) oltre alla prerelease `latest` sull'ultima. Tag senza prefisso `v`; ramo `v*` invariato.
@@ -87,7 +87,6 @@ Per le change dove il "come" non è ovvio (es. `maui-unlock`) partire da `/opsx:
 
 **Chiusura**
 - [ ] **`deploy-hardening`** — reverse proxy con TLS automatico, healthcheck, backup schedulato con `VACUUM INTO`, restart policy
-- [ ] **`maui-backup-drive`** *(opzionale)* — backup del DB su **Google Drive** come feature online opt-in: Google Sign-In (OAuth Authorization Code + PKCE, nessun client secret nell'APK), upload/download del file di backup su Drive dell'utente. Rimandato dalla v1 (vedi `maui-backup-local`) per non introdurre auth Google nel core offline
 
 ---
 

@@ -1,5 +1,6 @@
 using BarcodeScanning;
 using CardMaster.Services;
+using CardMaster.Services.Backup;
 using CardMaster.ViewModels;
 using CardMaster.Views;
 using Microsoft.Extensions.Logging;
@@ -39,6 +40,11 @@ public static class MauiProgram
 #if ANDROID
 		services.AddSingleton<IScreenBrightnessController, Platforms.Android.Services.ScreenBrightnessController>();
 		services.AddSingleton<IReadingFilterProbe, Platforms.Android.Services.ReadingFilterProbe>();
+		services.AddSingleton<IBackupScheduler, Platforms.Android.Services.AndroidBackupScheduler>();
+		services.AddSingleton<IBackupNotifier, Platforms.Android.Services.AndroidBackupNotifier>();
+#else
+		services.AddSingleton<IBackupScheduler, NoopBackupScheduler>();
+		services.AddSingleton<IBackupNotifier, NoopBackupNotifier>();
 #endif
 		// Storage locale SQLite (in chiaro, v1).
 		services.AddSingleton<IDatabaseService, DatabaseService>();
@@ -55,6 +61,14 @@ public static class MauiProgram
 
 		// Codec del payload di condivisione (QR self-contained).
 		services.AddSingleton<ICardShareCodec, CardShareCodec>();
+
+		// Backup su Google Drive: auth OAuth PKCE, client Drive REST e orchestrazione.
+		// HttpClient condiviso: nessun pacchetto Microsoft.Extensions.Http referenziato.
+		services.AddSingleton<HttpClient>();
+		services.AddSingleton<IGoogleAuth, GoogleAuth>();
+		services.AddSingleton<IDriveBackupClient, DriveBackupClient>();
+		services.AddSingleton<IBackupEnvironment, MauiBackupEnvironment>();
+		services.AddSingleton<IBackupService, BackupService>();
 
 		// Navigazione / UI
 		services.AddSingleton<AppShell>();
@@ -81,5 +95,9 @@ public static class MauiProgram
 		// Impostazioni: pagina e VM transient.
 		services.AddTransient<SettingsPage>();
 		services.AddTransient<SettingsViewModel>();
+
+		// Backup su Google Drive: pagina e VM transient.
+		services.AddTransient<BackupPage>();
+		services.AddTransient<BackupViewModel>();
 	}
 }
