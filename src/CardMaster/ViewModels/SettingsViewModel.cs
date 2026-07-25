@@ -48,6 +48,12 @@ public sealed class SettingsViewModel : ObservableObject
 
     public string AppVersion => $"Versione {AppInfo.Current.VersionString} (build {AppInfo.Current.BuildString})";
 
+    /// <summary>Vero se il backup su Google Drive è attivo, per lo stile del pulsante in Impostazioni.</summary>
+    public bool IsBackupEnabled => _settings.BackupEnabled;
+
+    /// <summary>Sottotitolo di stato mostrato sotto il pulsante "Backup su Google Drive".</summary>
+    public string BackupStatusText => _settings.BackupEnabled ? "Backup attivo" : "Backup non attivo";
+
     /// <summary>Applica la preferenza a <see cref="Application.UserAppTheme"/>.</summary>
     public static void ApplyTheme(AppThemePreference preference)
     {
