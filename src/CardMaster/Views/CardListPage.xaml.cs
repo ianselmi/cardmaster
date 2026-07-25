@@ -24,7 +24,15 @@ public partial class CardListPage : ContentPage
         => await Shell.Current.GoToAsync("ScanPage");
 
     private async void OnSettingsClicked(object? sender, EventArgs e)
-        => await Shell.Current.GoToAsync("SettingsPage");
+        // Con un aggiornamento segnalato (badge), il tocco porta dritto al flusso di aggiornamento
+        // invece che alla lista Impostazioni.
+        => await Shell.Current.GoToAsync(_viewModel.IsUpdateAvailable ? "UpdatePage" : "SettingsPage");
+
+    private async void OnUpdateBannerTapped(object? sender, TappedEventArgs e)
+        => await Shell.Current.GoToAsync("UpdatePage");
+
+    private void OnUpdateBannerDismissTapped(object? sender, TappedEventArgs e)
+        => _viewModel.DismissUpdateBanner();
 
     private async void OnCardSelected(object? sender, SelectionChangedEventArgs e)
     {

@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Text;
 using CardMaster.Data;
 using CardMaster.Services;
+using CardMaster.Services.Update;
+using Microsoft.Maui.ApplicationModel;
 
 namespace CardMaster.ViewModels;
 
@@ -16,16 +18,26 @@ public sealed class CardListViewModel : ObservableObject
     private const int RecentCardsCount = 3;
 
     private readonly ICardRepository _cards;
+    private readonly IUpdateService _updateService;
+    private readonly ISettingsStore _settings;
     private List<Card> _allCards = new();
     private string _searchText = string.Empty;
     private string _countText = string.Empty;
     private bool _hasRecentCards;
     private string _emptyStateTitle = string.Empty;
     private string _emptyStateSubtitle = string.Empty;
+    private bool _isUpdateAvailable;
 
-    public CardListViewModel(ICardRepository cards)
+    public CardListViewModel(ICardRepository cards, IUpdateService updateService, ISettingsStore settings)
     {
         _cards = cards;
+        _updateService = updateService;
+        _settings = settings;
+
+        // Il servizio è singleton per tutta la vita dell'app: segue il controllo automatico
+        // (App.xaml.cs) e quello manuale avviato dalla pagina Impostazioni/Controllo aggiornamenti.
+        _updateService.StateChanged += (_, _) => MainThread.BeginInvokeOnMainThread(RefreshUpdateBadge);
+        RefreshUpdateBadge();
     }
 
     /// <summary>Carte mostrate nella griglia principale, filtrate da <see cref="SearchText"/>.</summary>
@@ -73,6 +85,28 @@ public sealed class CardListViewModel : ObservableObject
         private set => SetProperty(ref _emptyStateSubtitle, value);
     }
 
+    /// <summary>Vero se un controllo (manuale o automatico) ha rilevato un aggiornamento non ancora silenziato dall'utente.</summary>
+    public bool IsUpdateAvailable
+    {
+        get => _isUpdateAvailable;
+        private set => SetProperty(ref _isUpdateAvailable, value);
+    }
+
+    /// <summary>Versione remota rilevata, per il testo del banner; valido solo mentre <see cref="IsUpdateAvailable"/> è vero.</summary>
+    public string? UpdateAvailableVersion => _updateService.LastCheckedRelease?.VersionName ?? _settings.LastUpdateCheckAvailableVersion;
+
+    /// <summary>Chiude il banner/badge per la versione corrente, senza toccare il flusso di download in `UpdatePage`.</summary>
+    public void DismissUpdateBanner()
+    {
+        if (UpdateAvailableVersion is null)
+        {
+            return;
+        }
+
+        _settings.UpdateNotifyDismissedVersion = UpdateAvailableVersion;
+        RefreshUpdateBadge();
+    }
+
     public async Task LoadAsync()
     {
         _allCards = await _cards.GetAllAsync();
@@ -86,6 +120,17 @@ public sealed class CardListViewModel : ObservableObject
         HasRecentCards = RecentCards.Count > 0;
 
         ApplyFilter();
+
+        // Rilegge lo stato al ritorno da Impostazioni/Controllo aggiornamenti (es. dopo un dismiss).
+        RefreshUpdateBadge();
+    }
+
+    private void RefreshUpdateBadge()
+    {
+        var availableVersion = UpdateAvailableVersion;
+        IsUpdateAvailable = availableVersion is not null
+            && !string.Equals(availableVersion, _settings.UpdateNotifyDismissedVersion, StringComparison.Ordinal);
+        OnPropertyChanged(nameof(UpdateAvailableVersion));
     }
 
     private void ApplyFilter()

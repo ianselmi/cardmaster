@@ -27,6 +27,14 @@ public interface IUpdateService
     Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Esegue <see cref="CheckForUpdateAsync"/> solo se l'utente ha attivato "Avvisami di nuove
+    /// versioni" e sono trascorse almeno 24 ore dall'ultimo controllo; no-op altrimenti. Pensato per
+    /// essere chiamato a ogni passaggio dell'app in foreground, senza mai interrogare la rete se
+    /// l'opzione non è attiva.
+    /// </summary>
+    Task CheckForUpdateIfDueAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Scarica e verifica (checksum SHA-256) l'APK indicato da <see cref="LastCheckedRelease"/>.
     /// No-op (restituisce l'ultimo esito) se un download è già in corso.
     /// </summary>

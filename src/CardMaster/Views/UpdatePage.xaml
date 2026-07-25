@@ -23,11 +23,24 @@
                 Command="{Binding CheckCommand}"
                 IsEnabled="{Binding IsNotBusy}" />
 
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource ItemSpacing}">
+                <VerticalStackLayout Grid.Column="0" Spacing="0">
+                    <Label Text="Avvisami di nuove versioni" FontSize="{StaticResource FontSizeBody}" />
+                    <Label
+                        Text="Controlla in automatico all'apertura dell'app (al massimo una volta al giorno) e mostra un avviso in lista carte."
+                        Style="{StaticResource CaptionLabel}" />
+                </VerticalStackLayout>
+                <Switch Grid.Column="1" IsToggled="{Binding NotifyEnabled}" VerticalOptions="Center" />
+            </Grid>
+
             <VerticalStackLayout IsVisible="{Binding IsUpdateAvailable}" Spacing="{StaticResource ItemSpacing}">
                 <Label Text="{Binding AvailableVersion, StringFormat='Versione {0} disponibile'}" FontSize="{StaticResource FontSizeBody}" />
                 <Button
                     Text="Scarica e installa"
                     Command="{Binding DownloadCommand}" />
+                <Button
+                    Text="Ignora questa versione"
+                    Command="{Binding DismissCommand}" />
             </VerticalStackLayout>
 
             <VerticalStackLayout IsVisible="{Binding IsDownloading}" Spacing="4">

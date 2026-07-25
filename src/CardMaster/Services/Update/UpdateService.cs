@@ -18,6 +18,7 @@ public sealed class UpdateService : IUpdateService
 {
     private const string ReleaseUrl = "https://api.github.com/repos/ianselmi/cardmaster/releases/tags/latest";
     private const string DigestPrefix = "sha256:";
+    private static readonly TimeSpan MinAutoCheckInterval = TimeSpan.FromHours(24);
 
     private readonly HttpClient _http;
     private readonly IUpdateNotifier _notifier;
@@ -113,6 +114,22 @@ public sealed class UpdateService : IUpdateService
         LastCheckedRelease = updateRelease;
         _settings.LastUpdateCheckAvailableVersion = updateRelease.VersionName;
         return new UpdateCheckResult(UpdateCheckOutcome.UpdateAvailable, updateRelease);
+    }
+
+    public async Task CheckForUpdateIfDueAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_settings.UpdateNotifyEnabled)
+        {
+            return;
+        }
+
+        if (_settings.LastUpdateCheckUtc is { } last && DateTimeOffset.UtcNow - last < MinAutoCheckInterval)
+        {
+            return;
+        }
+
+        await CheckForUpdateAsync(cancellationToken).ConfigureAwait(false);
+        RaiseStateChanged();
     }
 
     public async Task<UpdateDownloadResult> DownloadAsync(CancellationToken cancellationToken = default)
