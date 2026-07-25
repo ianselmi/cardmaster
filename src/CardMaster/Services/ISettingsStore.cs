@@ -40,4 +40,10 @@ public interface ISettingsStore
 
     /// <summary>Cache locale dell'uso di quota Drive (byte); null = sconosciuto.</summary>
     long? DriveQuotaUsage { get; set; }
+
+    /// <summary>Timestamp UTC dell'ultimo controllo aggiornamenti eseguito; null se mai eseguito.</summary>
+    DateTimeOffset? LastUpdateCheckUtc { get; set; }
+
+    /// <summary>Versione rilevata come disponibile all'ultimo controllo aggiornamenti; null se nessun aggiornamento o mai controllato.</summary>
+    string? LastUpdateCheckAvailableVersion { get; set; }
 }

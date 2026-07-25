@@ -17,6 +17,8 @@ public sealed class SettingsStore : ISettingsStore
     private const string LastBackupSizeKey = "backup_last_size";
     private const string DriveQuotaLimitKey = "backup_quota_limit";
     private const string DriveQuotaUsageKey = "backup_quota_usage";
+    private const string LastUpdateCheckUtcKey = "update_last_check_utc";
+    private const string LastUpdateCheckAvailableVersionKey = "update_last_check_available_version";
 
     public AppThemePreference Theme
     {
@@ -84,6 +86,42 @@ public sealed class SettingsStore : ISettingsStore
     {
         get => GetNullableLong(DriveQuotaUsageKey);
         set => SetNullableLong(DriveQuotaUsageKey, value);
+    }
+
+    public DateTimeOffset? LastUpdateCheckUtc
+    {
+        get
+        {
+            var ticks = Preferences.Default.Get(LastUpdateCheckUtcKey, 0L);
+            return ticks == 0L ? null : new DateTimeOffset(ticks, TimeSpan.Zero);
+        }
+        set
+        {
+            if (value is null)
+            {
+                Preferences.Default.Remove(LastUpdateCheckUtcKey);
+            }
+            else
+            {
+                Preferences.Default.Set(LastUpdateCheckUtcKey, value.Value.UtcTicks);
+            }
+        }
+    }
+
+    public string? LastUpdateCheckAvailableVersion
+    {
+        get => Preferences.Default.Get(LastUpdateCheckAvailableVersionKey, (string?)null);
+        set
+        {
+            if (value is null)
+            {
+                Preferences.Default.Remove(LastUpdateCheckAvailableVersionKey);
+            }
+            else
+            {
+                Preferences.Default.Set(LastUpdateCheckAvailableVersionKey, value);
+            }
+        }
     }
 
     private static long? GetNullableLong(string key) =>

@@ -65,4 +65,4 @@ La pipeline crea una Release stabile `v1.0.0` con l'APK, `versionName = 1.0.0`.
 
 - Le build locali/Debug **non** richiedono il keystore: la firma è condizionale (attiva solo quando `AndroidSigningKeyStore` è fornito, es. dalla CI).
 - Il "server" di rilascio è solo hosting statico (GitHub Releases), non il backend applicativo.
-- L'auto-update in-app (`maui-auto-update`) consumerà questi APK + un manifest `latest.json` (change futura).
+- Il repository è **pubblico**: l'auto-update in-app (`maui-auto-update`) legge direttamente la Release GitHub con tag `latest` (API pubbliche, nessuna autenticazione) per versione, URL dell'APK e checksum quando disponibile.

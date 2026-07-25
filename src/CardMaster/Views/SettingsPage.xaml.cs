@@ -17,4 +17,9 @@ public partial class SettingsPage : ContentPage
     {
         await Shell.Current.GoToAsync("BackupPage");
     }
+
+    private async void OnUpdateClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("UpdatePage");
+    }
 }

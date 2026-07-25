@@ -34,9 +34,15 @@ context: |
   atteso; nessuna sync del catalogo in v1.
 
   Build & distribuzione (fuori Play Store): pipeline GitHub Actions che compila e FIRMA l'APK (keystore
-  come secret CI, mai nel repo) e pubblica una Release. Auto-update self-hosted: manifest latest.json
-  (versionCode, versionName, url, sha256); l'app scarica l'APK, VERIFICA sha256/firma e installa via
-  package installer intent. Il "server" di update e' solo hosting statico, non il backend applicativo.
+  come secret CI, mai nel repo) e pubblica una Release. Auto-update: l'app legge direttamente la Release
+  GitHub con tag "latest" (API pubbliche, nessun manifest/server aggiuntivo), scarica l'APK, VERIFICA
+  checksum/firma e installa via package installer intent.
+
+  Repository GitHub pubblico (decisione 25 lug 2026, change maui-auto-update): necessario perche'
+  l'auto-update legge le API Releases senza token incorporato nell'APK. Verificato che repo e cronologia
+  non contengano segreti. PRIMA DI OGNI COMMIT/PUSH: rivedere il diff per escludere segreti o dati
+  sensibili (chiavi, token, credenziali) - il repo e' visibile a chiunque. Keystore e credenziali CI
+  restano solo come secret GitHub Actions, mai nel repo.
 
   Sicurezza v1: SQLCipher sul device. Niente TLS/E2E (nessuna rete nel core; l'unica rete e' l'update opt-in).
 

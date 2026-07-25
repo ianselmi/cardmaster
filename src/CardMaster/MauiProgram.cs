@@ -1,6 +1,7 @@
 using BarcodeScanning;
 using CardMaster.Services;
 using CardMaster.Services.Backup;
+using CardMaster.Services.Update;
 using CardMaster.ViewModels;
 using CardMaster.Views;
 using Microsoft.Extensions.Logging;
@@ -42,9 +43,15 @@ public static class MauiProgram
 		services.AddSingleton<IReadingFilterProbe, Platforms.Android.Services.ReadingFilterProbe>();
 		services.AddSingleton<IBackupScheduler, Platforms.Android.Services.AndroidBackupScheduler>();
 		services.AddSingleton<IBackupNotifier, Platforms.Android.Services.AndroidBackupNotifier>();
+		services.AddSingleton<IUpdateNotifier, Platforms.Android.Services.AndroidUpdateNotifier>();
+		services.AddSingleton<IUpdateDownloadLauncher, Platforms.Android.Services.AndroidUpdateDownloadLauncher>();
+		services.AddSingleton<IApkInstaller, Platforms.Android.Services.AndroidApkInstaller>();
 #else
 		services.AddSingleton<IBackupScheduler, NoopBackupScheduler>();
 		services.AddSingleton<IBackupNotifier, NoopBackupNotifier>();
+		services.AddSingleton<IUpdateNotifier, NoopUpdateNotifier>();
+		services.AddSingleton<IUpdateDownloadLauncher, NoopUpdateDownloadLauncher>();
+		services.AddSingleton<IApkInstaller, NoopApkInstaller>();
 #endif
 		// Storage locale SQLite (in chiaro, v1).
 		services.AddSingleton<IDatabaseService, DatabaseService>();
@@ -99,5 +106,10 @@ public static class MauiProgram
 		// Backup su Google Drive: pagina e VM transient.
 		services.AddTransient<BackupPage>();
 		services.AddTransient<BackupViewModel>();
+
+		// Controllo aggiornamenti: manifest statico su GitHub Pages (nessuna autenticazione, repo privato).
+		services.AddSingleton<IUpdateService, UpdateService>();
+		services.AddTransient<UpdatePage>();
+		services.AddTransient<UpdateViewModel>();
 	}
 }

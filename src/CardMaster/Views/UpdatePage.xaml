@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.UpdatePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Controllo aggiornamenti">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Versione installata" Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding InstalledVersion}" FontSize="{StaticResource FontSizeBody}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Stato" Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding LastCheckText}" FontSize="{StaticResource FontSizeBody}" />
+            </VerticalStackLayout>
+
+            <Button
+                Text="Verifica aggiornamenti"
+                Command="{Binding CheckCommand}"
+                IsEnabled="{Binding IsNotBusy}" />
+
+            <VerticalStackLayout IsVisible="{Binding IsUpdateAvailable}" Spacing="{StaticResource ItemSpacing}">
+                <Label Text="{Binding AvailableVersion, StringFormat='Versione {0} disponibile'}" FontSize="{StaticResource FontSizeBody}" />
+                <Button
+                    Text="Scarica e installa"
+                    Command="{Binding DownloadCommand}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout IsVisible="{Binding IsDownloading}" Spacing="4">
+                <ProgressBar Progress="{Binding DownloadProgress}" />
+                <Label Text="{Binding DownloadPercent, StringFormat='{0}%'}" Style="{StaticResource CaptionLabel}" />
+            </VerticalStackLayout>
+
+            <Label
+                Text="{Binding ErrorMessage}"
+                IsVisible="{Binding HasError}"
+                TextColor="#B00020" />
+
+            <ActivityIndicator IsRunning="{Binding IsChecking}" IsVisible="{Binding IsChecking}" HorizontalOptions="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

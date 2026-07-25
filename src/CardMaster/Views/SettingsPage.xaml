@@ -27,6 +27,11 @@
                 <Button Text="Backup su Google Drive" Clicked="OnBackupClicked" />
             </VerticalStackLayout>
 
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Aggiornamenti" Style="{StaticResource CaptionLabel}" />
+                <Button Text="Controllo aggiornamenti" Clicked="OnUpdateClicked" />
+            </VerticalStackLayout>
+
         </VerticalStackLayout>
     </ScrollView>
 
