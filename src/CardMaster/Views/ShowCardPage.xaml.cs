@@ -48,6 +48,16 @@ public partial class ShowCardPage : ContentPage
         _brightness.RestoreDefault();
     }
 
+    private async void OnShareClicked(object? sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(_viewModel.CardId))
+        {
+            return;
+        }
+
+        await Shell.Current.GoToAsync($"SharePage?id={Uri.EscapeDataString(_viewModel.CardId)}");
+    }
+
     private async void OnEditClicked(object? sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_viewModel.CardId))

@@ -5,11 +5,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title="{Binding DisplayName}">
 
-    <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Modifica" Clicked="OnEditClicked" />
-        <ToolbarItem Text="Elimina" Clicked="OnDeleteClicked" />
-    </ContentPage.ToolbarItems>
-
     <ScrollView>
         <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
 
@@ -66,6 +61,24 @@
                         HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Border>
+
+            <!-- Azioni sulla carta: sotto l'immagine generata -->
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="{StaticResource ItemSpacing}">
+                <Button
+                    Grid.Column="0"
+                    Text="Condividi"
+                    Clicked="OnShareClicked" />
+                <Button
+                    Grid.Column="1"
+                    Text="Modifica"
+                    Clicked="OnEditClicked" />
+                <Button
+                    Grid.Column="2"
+                    Text="Elimina"
+                    BackgroundColor="#B00020"
+                    TextColor="White"
+                    Clicked="OnDeleteClicked" />
+            </Grid>
 
         </VerticalStackLayout>
     </ScrollView>

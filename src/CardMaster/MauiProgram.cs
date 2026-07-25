@@ -53,6 +53,9 @@ public static class MauiProgram
 		// Rendering barcode (ZXing.Net + SkiaSharp).
 		services.AddSingleton<IBarcodeRenderer, BarcodeRenderer>();
 
+		// Codec del payload di condivisione (QR self-contained).
+		services.AddSingleton<ICardShareCodec, CardShareCodec>();
+
 		// Navigazione / UI
 		services.AddSingleton<AppShell>();
 		services.AddSingleton<CardListViewModel>();
@@ -66,6 +69,10 @@ public static class MauiProgram
 		// Visualizzazione carta (barcode a schermo).
 		services.AddTransient<ShowCardPage>();
 		services.AddTransient<ShowCardViewModel>();
+
+		// Condivisione carta (QR self-contained): pagina e VM transient.
+		services.AddTransient<SharePage>();
+		services.AddTransient<ShareCardViewModel>();
 
 		// Modifica carta: pagina e VM transient per stato fresco.
 		services.AddTransient<EditCardPage>();

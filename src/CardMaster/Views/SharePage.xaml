@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.SharePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Condividi">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
+
+            <Label
+                Text="{Binding DisplayName}"
+                Style="{StaticResource CaptionLabel}"
+                HorizontalOptions="Center" />
+
+            <!-- Area QR: SEMPRE su sfondo bianco, anche in dark mode -->
+            <Border
+                Padding="16"
+                BackgroundColor="White"
+                HorizontalOptions="Fill">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16" />
+                </Border.StrokeShape>
+
+                <VerticalStackLayout Spacing="12">
+                    <Image
+                        Source="{Binding QrImage}"
+                        IsVisible="{Binding QrAvailable}"
+                        Aspect="AspectFit"
+                        HeightRequest="280"
+                        HorizontalOptions="Center" />
+
+                    <Label
+                        Text="Impossibile generare il codice da condividere."
+                        IsVisible="{Binding QrUnavailable}"
+                        FontSize="13"
+                        TextColor="#B00020"
+                        HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label
+                Text="Fai scansionare questo codice dall'altro telefono per copiare la carta."
+                Style="{StaticResource CaptionLabel}"
+                HorizontalTextAlignment="Center" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

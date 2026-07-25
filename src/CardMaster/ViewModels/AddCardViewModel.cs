@@ -27,6 +27,13 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
     private string _customIssuerName = string.Empty;
     private bool _isCustomIssuer;
 
+    // Snapshot ricevuto via QR di condivisione: risolto dopo InitializeAsync
+    // (ApplyQueryAttributes può arrivare prima che il catalogo sia caricato).
+    private string? _pendingIssuerName;
+    private string? _receivedColor;
+    private string? _receivedLogo;
+    private bool _pendingIssuerResolved;
+
     public AddCardViewModel(ICardRepository cards, IIssuerCatalog catalog)
     {
         _cards = cards;
@@ -110,6 +117,46 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
         }
 
         IssuerOptions.Add(OtherLabel);
+
+        ResolvePendingIssuer();
+    }
+
+    /// <summary>
+    /// Applica l'emittente ricevuto da uno snapshot condiviso, ora che il catalogo è
+    /// caricato: match col catalogo → opzione corrispondente; altrimenti emittente libero.
+    /// I valori di colore/logo RICEVUTI vincono sull'arricchimento del catalogo.
+    /// </summary>
+    private void ResolvePendingIssuer()
+    {
+        if (_pendingIssuerResolved)
+        {
+            return;
+        }
+        _pendingIssuerResolved = true;
+
+        if (!string.IsNullOrWhiteSpace(_pendingIssuerName))
+        {
+            if (_issuersByName.TryGetValue(_pendingIssuerName, out var issuer))
+            {
+                SelectedIssuerOption = issuer.Name; // opzione del catalogo (arricchisce colore/logo/nome)
+            }
+            else
+            {
+                CustomIssuerName = _pendingIssuerName;
+                SelectedIssuerOption = OtherLabel;
+            }
+        }
+
+        // I valori ricevuti hanno la precedenza sull'arricchimento del catalogo.
+        if (!string.IsNullOrWhiteSpace(_receivedColor))
+        {
+            _colorHex = _receivedColor;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_receivedLogo))
+        {
+            _logoId = _receivedLogo;
+        }
     }
 
     private void ApplyIssuerSelection(string option)
@@ -192,6 +239,29 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
         if (query.TryGetValue("format", out var format) && format is not null)
         {
             SelectedFormat = format.ToString();
+        }
+
+        // Campi aggiuntivi presenti solo in ricezione da un QR di condivisione.
+        if (query.TryGetValue("name", out var name) && name is not null)
+        {
+            DisplayName = name.ToString() ?? string.Empty;
+        }
+
+        if (query.TryGetValue("issuer", out var issuer) && issuer is not null)
+        {
+            _pendingIssuerName = issuer.ToString();
+        }
+
+        if (query.TryGetValue("color", out var color) && color is not null)
+        {
+            _receivedColor = color.ToString();
+            _colorHex = _receivedColor;
+        }
+
+        if (query.TryGetValue("logo", out var logo) && logo is not null)
+        {
+            _receivedLogo = logo.ToString();
+            _logoId = _receivedLogo;
         }
     }
 }
