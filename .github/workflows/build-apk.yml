@@ -76,6 +76,6 @@ jobs:
         with:
           tag_name: ${{ steps.ver.outputs.release_tag }}
           prerelease: ${{ steps.ver.outputs.prerelease }}
-          name: ${{ steps.ver.outputs.release_tag == 'latest' && 'Ultima build (main)' || steps.ver.outputs.release_tag }}
+          name: ${{ steps.ver.outputs.release_tag == 'latest' && steps.ver.outputs.name || steps.ver.outputs.release_tag }}
           files: ${{ steps.apk.outputs.path }}
           fail_on_unmatched_files: true
