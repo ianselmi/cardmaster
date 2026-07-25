@@ -24,17 +24,31 @@
                 FontSize="{StaticResource FontSizeTitle}"
                 HorizontalOptions="Center" />
             <Label
-                Text="Puoi comunque inserire il codice a mano."
+                Text="Puoi comunque scegliere un'immagine o inserire il codice a mano."
                 Style="{StaticResource CaptionLabel}"
+                HorizontalTextAlignment="Center"
                 HorizontalOptions="Center" />
         </VerticalStackLayout>
 
-        <Button
-            Text="Inserisci a mano"
-            Clicked="OnManualEntryClicked"
-            Margin="24"
-            HorizontalOptions="Center"
-            VerticalOptions="End" />
+        <!-- Percorsi alternativi alla scansione live: restano disponibili anche
+             senza permesso camera. -->
+        <Grid
+            ColumnDefinitions="*,*"
+            ColumnSpacing="{StaticResource ItemSpacing}"
+            Margin="16"
+            VerticalOptions="End">
+            <Button
+                Grid.Column="0"
+                Text="Inserisci a mano"
+                LineBreakMode="WordWrap"
+                Clicked="OnManualEntryClicked" />
+            <Button
+                Grid.Column="1"
+                x:Name="PickImageButton"
+                Text="Scegli da un'immagine"
+                LineBreakMode="WordWrap"
+                Clicked="OnPickImageClicked" />
+        </Grid>
     </Grid>
 
 </ContentPage>
