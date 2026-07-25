@@ -38,6 +38,10 @@ keytool -list -v -keystore cardmaster.keystore -alias cardmaster -storepass "LA_
 
 Copia la riga `SHA1:` (formato `AA:BB:CC:...`) di entrambi gli output e registrali come due voci separate sull'OAuth client Android (Google Cloud permette un solo package name ma più SHA-1 sullo stesso client).
 
+### Abilita il custom URI scheme
+
+Sullo stesso client Android, apri **Advanced settings** e attiva **"Enable custom URI scheme"** (poi Save). Senza questo flag il login fallisce con `Error 400: invalid_request` / "Custom URI scheme is not enabled for your Android client", anche con package name e SHA-1 corretti — Google disabilita di default gli scheme custom (come `com.cardmaster.app:/oauth2redirect`) per motivi di sicurezza (rischio app impersonation). Il cambio può richiedere da qualche minuto a un paio d'ore per propagarsi.
+
 ## 4. Riporta il client id nell'app
 
 Copia il **client ID** generato (termina con `.apps.googleusercontent.com`) in `src/CardMaster/Services/Backup/GoogleOAuthConfig.cs`, sostituendo il placeholder `REPLACE_WITH_ANDROID_OAUTH_CLIENT_ID.apps.googleusercontent.com`. Non è un secret (il flusso è PKCE, senza client secret), quindi può restare nel codice sorgente.
