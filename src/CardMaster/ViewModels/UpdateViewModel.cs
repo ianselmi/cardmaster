@@ -36,11 +36,14 @@ public sealed class UpdateViewModel : ObservableObject
 
         CheckCommand = new Command(async () => await CheckAsync(), () => !IsBusy);
         DownloadCommand = new Command(async () => await DownloadAsync(), () => !IsBusy && IsUpdateAvailable);
+        DismissCommand = new Command(Dismiss, () => IsUpdateAvailable && !IsDismissed);
     }
 
     public Command CheckCommand { get; }
 
     public Command DownloadCommand { get; }
+
+    public Command DismissCommand { get; }
 
     public string InstalledVersion => AppInfo.Current.VersionString;
 
@@ -69,6 +72,24 @@ public sealed class UpdateViewModel : ObservableObject
     public string? AvailableVersion => _updateService.LastCheckedRelease?.VersionName ?? _settings.LastUpdateCheckAvailableVersion;
 
     public bool IsUpdateAvailable => AvailableVersion is not null;
+
+    /// <summary>Vero se l'utente ha già chiuso il segnale per <see cref="AvailableVersion"/>.</summary>
+    public bool IsDismissed => AvailableVersion is not null
+        && string.Equals(AvailableVersion, _settings.UpdateNotifyDismissedVersion, StringComparison.Ordinal);
+
+    /// <summary>Opzione "Avvisami di nuove versioni" (controllo automatico opt-in), mostrata come switch in Impostazioni.</summary>
+    public bool NotifyEnabled
+    {
+        get => _settings.UpdateNotifyEnabled;
+        set
+        {
+            if (_settings.UpdateNotifyEnabled != value)
+            {
+                _settings.UpdateNotifyEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
     public string LastCheckText
     {
@@ -151,6 +172,17 @@ public sealed class UpdateViewModel : ObservableObject
         _launcher.StartDownload();
     }
 
+    private void Dismiss()
+    {
+        if (AvailableVersion is null)
+        {
+            return;
+        }
+
+        _settings.UpdateNotifyDismissedVersion = AvailableVersion;
+        RaiseStateChanged();
+    }
+
     private void OnUpdateServiceStateChanged(object? sender, EventArgs e)
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -190,9 +222,11 @@ public sealed class UpdateViewModel : ObservableObject
         OnPropertyChanged(nameof(DownloadPercent));
         OnPropertyChanged(nameof(AvailableVersion));
         OnPropertyChanged(nameof(IsUpdateAvailable));
+        OnPropertyChanged(nameof(IsDismissed));
         OnPropertyChanged(nameof(LastCheckText));
         CheckCommand.ChangeCanExecute();
         DownloadCommand.ChangeCanExecute();
+        DismissCommand.ChangeCanExecute();
     }
 
     private static async Task<bool> ConfirmAsync(string title, string message, string accept, string cancel = "Annulla")

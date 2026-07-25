@@ -19,6 +19,8 @@ public sealed class SettingsStore : ISettingsStore
     private const string DriveQuotaUsageKey = "backup_quota_usage";
     private const string LastUpdateCheckUtcKey = "update_last_check_utc";
     private const string LastUpdateCheckAvailableVersionKey = "update_last_check_available_version";
+    private const string UpdateNotifyEnabledKey = "update_notify_enabled";
+    private const string UpdateNotifyDismissedVersionKey = "update_notify_dismissed_version";
 
     public AppThemePreference Theme
     {
@@ -120,6 +122,28 @@ public sealed class SettingsStore : ISettingsStore
             else
             {
                 Preferences.Default.Set(LastUpdateCheckAvailableVersionKey, value);
+            }
+        }
+    }
+
+    public bool UpdateNotifyEnabled
+    {
+        get => Preferences.Default.Get(UpdateNotifyEnabledKey, false);
+        set => Preferences.Default.Set(UpdateNotifyEnabledKey, value);
+    }
+
+    public string? UpdateNotifyDismissedVersion
+    {
+        get => Preferences.Default.Get(UpdateNotifyDismissedVersionKey, (string?)null);
+        set
+        {
+            if (value is null)
+            {
+                Preferences.Default.Remove(UpdateNotifyDismissedVersionKey);
+            }
+            else
+            {
+                Preferences.Default.Set(UpdateNotifyDismissedVersionKey, value);
             }
         }
     }

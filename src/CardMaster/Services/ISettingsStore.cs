@@ -46,4 +46,10 @@ public interface ISettingsStore
 
     /// <summary>Versione rilevata come disponibile all'ultimo controllo aggiornamenti; null se nessun aggiornamento o mai controllato.</summary>
     string? LastUpdateCheckAvailableVersion { get; set; }
+
+    /// <summary>Controllo automatico degli aggiornamenti abilitato dall'utente. Default false (opt-in).</summary>
+    bool UpdateNotifyEnabled { get; set; }
+
+    /// <summary>Versione remota per cui l'utente ha già chiuso il segnale di aggiornamento; null se nessuna.</summary>
+    string? UpdateNotifyDismissedVersion { get; set; }
 }
