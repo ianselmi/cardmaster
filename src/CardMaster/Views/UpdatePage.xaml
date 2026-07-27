@@ -27,7 +27,7 @@
                 <VerticalStackLayout Grid.Column="0" Spacing="0">
                     <Label Text="Avvisami di nuove versioni" FontSize="{StaticResource FontSizeBody}" />
                     <Label
-                        Text="Controlla in automatico all'apertura dell'app (al massimo una volta al giorno) e mostra un avviso in lista carte."
+                        Text="Controlla in automatico, anche ad app chiusa: mostra un avviso in lista carte e una notifica."
                         Style="{StaticResource CaptionLabel}" />
                 </VerticalStackLayout>
                 <Switch Grid.Column="1" IsToggled="{Binding NotifyEnabled}" VerticalOptions="Center" />

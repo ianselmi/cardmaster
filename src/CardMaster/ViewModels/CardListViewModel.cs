@@ -122,6 +122,10 @@ public sealed class CardListViewModel : ObservableObject
         }
 
         _settings.UpdateNotifyDismissedVersion = UpdateAvailableVersion;
+
+        // Chiudere il banner silenzia la versione per entrambi i canali, notifica compresa.
+        _updateService.CancelUpdateNotification();
+
         RefreshUpdateBadge();
     }
 
