@@ -22,6 +22,11 @@ public partial class App : Application
         // Backup "a ogni apertura": no-op se disabilitato, altra frequenza o rete assente.
         _ = backup.MaybeBackupOnOpenAsync();
 
+        // Prima di tutto: se l'aggiornamento annunciato dall'ultimo controllo risulta ormai
+        // installato, azzera quello stato. Sincrono e senza rete, quindi vale anche offline e
+        // con il controllo automatico disattivato (che è il default).
+        _updateService.ReconcileInstalledVersion();
+
         // Controllo aggiornamenti automatico: no-op se l'opzione non è attiva o l'intervallo minimo non è trascorso.
         _ = _updateService.CheckForUpdateIfDueAsync();
     }
@@ -35,7 +40,8 @@ public partial class App : Application
     {
         base.OnResume();
 
-        // Riesegue lo stesso controllo opt-in ogni volta che l'app torna in foreground.
+        // Stesso ordine dell'avvio: prima la riconciliazione locale, poi il controllo opt-in.
+        _updateService.ReconcileInstalledVersion();
         _ = _updateService.CheckForUpdateIfDueAsync();
     }
 }

@@ -69,7 +69,11 @@ public sealed class UpdateViewModel : ObservableObject
 
     public int DownloadPercent => (int)Math.Round(DownloadProgress * 100);
 
-    public string? AvailableVersion => _updateService.LastCheckedRelease?.VersionName ?? _settings.LastUpdateCheckAvailableVersion;
+    /// <summary>
+    /// Versione da installare, già filtrata dal servizio rispetto a quella installata: una volta
+    /// installato l'aggiornamento non viene più annunciato, anche senza un nuovo controllo.
+    /// </summary>
+    public string? AvailableVersion => _updateService.AvailableUpdateVersion;
 
     public bool IsUpdateAvailable => AvailableVersion is not null;
 
