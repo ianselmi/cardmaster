@@ -5,9 +5,9 @@
 Controllo, download e installazione degli aggiornamenti dell'app tramite la Release GitHub con tag `latest`, senza alcuna infrastruttura server: verifica della versione su richiesta esplicita dell'utente, download con avanzamento e verifica di integrità best-effort, installazione tramite il package installer di sistema Android.
 
 ## Requirements
-### Requirement: Controllo di nuove versioni su richiesta
+### Requirement: Controllo di nuove versioni su richiesta o su opzione attivata
 
-Il sistema SHALL permettere all'utente di avviare, tramite azione esplicita, un controllo della presenza di una versione più recente dell'app, interrogando la Release GitHub con tag `latest` del repository di distribuzione. Il sistema NON MUST eseguire questo controllo automaticamente all'avvio o in background senza un'azione esplicita dell'utente.
+Il sistema SHALL permettere all'utente di avviare, tramite azione esplicita, un controllo della presenza di una versione più recente dell'app, interrogando la Release GitHub con tag `latest` del repository di distribuzione. Il sistema NON MUST eseguire questo controllo automaticamente all'avvio o in background, **a meno che l'utente non abbia attivato l'opzione "Avvisami di nuove versioni"** descritta dalla capability `app-update-notify`; in tal caso il controllo automatico è ammesso solo con le limitazioni di frequenza e di foreground definite da quella capability. In assenza di tale opzione attivata, il comportamento resta invariato: nessun controllo senza azione esplicita dell'utente.
 
 #### Scenario: Nessun aggiornamento disponibile
 
@@ -23,6 +23,16 @@ Il sistema SHALL permettere all'utente di avviare, tramite azione esplicita, un 
 
 - **WHEN** il controllo aggiornamenti fallisce per assenza di rete, timeout o errore della API GitHub (incluso rate limit)
 - **THEN** il sistema mostra un messaggio d'errore comprensibile e permette di riprovare, senza bloccare il resto dell'app
+
+#### Scenario: Nessun controllo automatico senza opzione attivata
+
+- **WHEN** l'utente non ha attivato "Avvisami di nuove versioni"
+- **THEN** il sistema non esegue alcun controllo aggiornamenti all'avvio o in background, solo su richiesta esplicita
+
+#### Scenario: Controllo automatico con opzione attivata
+
+- **WHEN** l'utente ha attivato "Avvisami di nuove versioni" e sono soddisfatte le condizioni di frequenza/foreground di `app-update-notify`
+- **THEN** il sistema esegue il controllo automaticamente, riusando la stessa interrogazione della Release GitHub `latest` usata dal controllo manuale
 
 ### Requirement: Download dell'APK con avanzamento visibile
 
