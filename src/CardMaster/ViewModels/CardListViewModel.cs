@@ -1,6 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
-using System.Text;
 using CardMaster.Data;
 using CardMaster.Services;
 using CardMaster.Services.Update;
@@ -24,6 +22,7 @@ public sealed class CardListViewModel : ObservableObject
     private string _searchText = string.Empty;
     private string _countText = string.Empty;
     private bool _hasRecentCards;
+    private bool _hasLabelFilters;
     private string _emptyStateTitle = string.Empty;
     private string _emptyStateSubtitle = string.Empty;
     private bool _isUpdateAvailable;
@@ -33,6 +32,8 @@ public sealed class CardListViewModel : ObservableObject
         _cards = cards;
         _updateService = updateService;
         _settings = settings;
+
+        ToggleLabelFilterCommand = new Command<LabelFilterItem>(ToggleLabelFilter);
 
         // Il servizio è singleton per tutta la vita dell'app: segue il controllo automatico
         // (App.xaml.cs) e quello manuale avviato dalla pagina Impostazioni/Controllo aggiornamenti.
@@ -45,6 +46,19 @@ public sealed class CardListViewModel : ObservableObject
 
     /// <summary>Ultime carte aperte (al più <see cref="RecentCardsCount"/>), più recente prima.</summary>
     public ObservableCollection<Card> RecentCards { get; } = new();
+
+    /// <summary>Chip del filtro per label: una per label in uso su almeno una carta attiva.</summary>
+    public ObservableCollection<LabelFilterItem> LabelFilters { get; } = new();
+
+    /// <summary>Attiva/disattiva un chip del filtro (selezione multipla, in OR).</summary>
+    public Command<LabelFilterItem> ToggleLabelFilterCommand { get; }
+
+    /// <summary>Vero se esiste almeno una label: sotto questa soglia la riga di chip non si mostra.</summary>
+    public bool HasLabelFilters
+    {
+        get => _hasLabelFilters;
+        private set => SetProperty(ref _hasLabelFilters, value);
+    }
 
     public string SearchText
     {
@@ -119,6 +133,7 @@ public sealed class CardListViewModel : ObservableObject
         }
         HasRecentCards = RecentCards.Count > 0;
 
+        RebuildLabelFilters();
         ApplyFilter();
 
         // Rilegge lo stato al ritorno da Impostazioni/Controllo aggiornamenti (es. dopo un dismiss).
@@ -133,15 +148,62 @@ public sealed class CardListViewModel : ObservableObject
         OnPropertyChanged(nameof(UpdateAvailableVersion));
     }
 
+    /// <summary>
+    /// Ricostruisce i chip dalle label delle carte attive, conservando le selezioni attive
+    /// e potando quelle rimaste orfane (label che nessuna carta usa più): un filtro attivo
+    /// senza il suo chip svuoterebbe la griglia senza niente a cui attribuirlo.
+    /// </summary>
+    private void RebuildLabelFilters()
+    {
+        var selected = LabelFilters
+            .Where(f => f.IsSelected)
+            .Select(f => f.Name)
+            .ToList();
+
+        var labels = _allCards
+            .SelectMany(c => c.Labels)
+            .GroupBy(Normalize)
+            .Select(g => g.First())
+            .OrderBy(Normalize, StringComparer.Ordinal)
+            .ToList();
+
+        LabelFilters.Clear();
+        foreach (var label in labels)
+        {
+            var wasSelected = selected.Any(s => CardLabels.AreSame(s, label));
+            LabelFilters.Add(new LabelFilterItem(label, wasSelected));
+        }
+
+        HasLabelFilters = LabelFilters.Count > 0;
+    }
+
+    private void ToggleLabelFilter(LabelFilterItem? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        item.IsSelected = !item.IsSelected;
+        ApplyFilter();
+    }
+
     private void ApplyFilter()
     {
         var query = Normalize(SearchText);
+        var selectedLabels = LabelFilters
+            .Where(f => f.IsSelected)
+            .Select(f => Normalize(f.Name))
+            .ToList();
 
-        var matches = string.IsNullOrEmpty(query)
-            ? _allCards
-            : _allCards
-                .Where(c => Normalize(c.DisplayName).Contains(query) || Normalize(c.IssuerName).Contains(query))
-                .ToList();
+        // Testo e label si combinano in AND; tra le label selezionate vale l'OR.
+        var matches = _allCards
+            .Where(c => string.IsNullOrEmpty(query)
+                || Normalize(c.DisplayName).Contains(query)
+                || Normalize(c.IssuerName).Contains(query))
+            .Where(c => selectedLabels.Count == 0
+                || c.Labels.Any(l => selectedLabels.Contains(Normalize(l))))
+            .ToList();
 
         FilteredCards.Clear();
         foreach (var card in matches)
@@ -149,9 +211,11 @@ public sealed class CardListViewModel : ObservableObject
             FilteredCards.Add(card);
         }
 
-        CountText = string.IsNullOrEmpty(query)
-            ? FormatTotal(_allCards.Count)
-            : $"{FilteredCards.Count}/{_allCards.Count}";
+        var isFiltered = !string.IsNullOrEmpty(query) || selectedLabels.Count > 0;
+
+        CountText = isFiltered
+            ? $"{FilteredCards.Count}/{_allCards.Count}"
+            : FormatTotal(_allCards.Count);
 
         if (_allCards.Count == 0)
         {
@@ -161,30 +225,14 @@ public sealed class CardListViewModel : ObservableObject
         else
         {
             EmptyStateTitle = "Nessuna carta trovata";
-            EmptyStateSubtitle = "Prova un altro nome o emittente.";
+            EmptyStateSubtitle = selectedLabels.Count > 0
+                ? "Prova a togliere qualche label o a cambiare la ricerca."
+                : "Prova un altro nome o emittente.";
         }
     }
 
     private static string FormatTotal(int count) => count == 1 ? "1 carta" : $"{count} carte";
 
     /// <summary>Normalizza per un confronto case/accent-insensitive (es. "citta" trova "Città").</summary>
-    private static string Normalize(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        var decomposed = value.Normalize(NormalizationForm.FormD);
-        var builder = new StringBuilder(decomposed.Length);
-        foreach (var c in decomposed)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
-            {
-                builder.Append(c);
-            }
-        }
-
-        return builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
-    }
+    private static string Normalize(string? value) => TextNormalizer.Normalize(value);
 }

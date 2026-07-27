@@ -5,10 +5,12 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:data="clr-namespace:CardMaster.Data"
     xmlns:views="clr-namespace:CardMaster.Views"
+    xmlns:vm="clr-namespace:CardMaster.ViewModels"
+    x:Name="Page"
     Title="Le mie carte">
 
     <ContentPage.Resources>
-        <views:NameToTileColorConverter x:Key="NameToTileColor" />
+        <views:CardToTileColorConverter x:Key="CardToTileColor" />
         <views:UpdateAvailableToIconConverter x:Key="UpdateAvailableToIcon" />
     </ContentPage.Resources>
 
@@ -20,7 +22,7 @@
             Clicked="OnSettingsClicked" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*" RowSpacing="{StaticResource ItemSpacing}">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="{StaticResource ItemSpacing}">
 
         <Border
             Grid.Row="0"
@@ -67,15 +69,67 @@
             Text="{Binding CountText}"
             Style="{StaticResource CaptionLabel}" />
 
-        <Label
+        <!-- Filtro per label: selezione multipla in OR, nascosto finché non esiste nessuna label -->
+        <CollectionView
             Grid.Row="3"
+            Margin="20,4,20,0"
+            HeightRequest="44"
+            IsVisible="{Binding HasLabelFilters}"
+            ItemsSource="{Binding LabelFilters}"
+            SelectionMode="None">
+
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:LabelFilterItem">
+                    <Border
+                        Margin="0,4"
+                        Padding="14,6"
+                        BackgroundColor="Transparent"
+                        Stroke="{StaticResource Gray300}"
+                        StrokeThickness="1"
+                        VerticalOptions="Center">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="18" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding BindingContext.ToggleLabelFilterCommand, Source={x:Reference Page}, x:DataType='vm:CardListViewModel'}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                                <Setter Property="Stroke" Value="{StaticResource Primary}" />
+                            </DataTrigger>
+                        </Border.Triggers>
+
+                        <Label
+                            Text="{Binding Name}"
+                            FontSize="{StaticResource FontSizeBody}"
+                            VerticalOptions="Center">
+                            <Label.Triggers>
+                                <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
+                                    <Setter Property="TextColor" Value="White" />
+                                </DataTrigger>
+                            </Label.Triggers>
+                        </Label>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Label
+            Grid.Row="4"
             Margin="20,4,20,0"
             Text="Usate di recente"
             Style="{StaticResource CaptionLabel}"
             IsVisible="{Binding HasRecentCards}" />
 
         <CollectionView
-            Grid.Row="4"
+            Grid.Row="5"
             Margin="20,4"
             HeightRequest="90"
             IsVisible="{Binding HasRecentCards}"
@@ -92,7 +146,7 @@
                     <Border
                         WidthRequest="110"
                         HeightRequest="90"
-                        BackgroundColor="{Binding DisplayName, Converter={StaticResource NameToTileColor}}"
+                        BackgroundColor="{Binding ., Converter={StaticResource CardToTileColor}}"
                         StrokeThickness="0">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="16" />
@@ -120,7 +174,7 @@
         </CollectionView>
 
         <CollectionView
-            Grid.Row="5"
+            Grid.Row="6"
             ItemsSource="{Binding FilteredCards}"
             SelectionMode="Single"
             SelectionChanged="OnCardSelected">
@@ -155,7 +209,7 @@
                     <Border
                         Margin="4"
                         HeightRequest="160"
-                        BackgroundColor="{Binding DisplayName, Converter={StaticResource NameToTileColor}}"
+                        BackgroundColor="{Binding ., Converter={StaticResource CardToTileColor}}"
                         StrokeThickness="0">
                         <Border.StrokeShape>
                             <RoundRectangle CornerRadius="20" />

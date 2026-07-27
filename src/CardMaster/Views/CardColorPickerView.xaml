@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CardMaster.Views.CardColorPickerView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:CardMaster.ViewModels"
+    x:Name="Root"
+    x:DataType="vm:CardFormViewModel">
+
+    <VerticalStackLayout Spacing="4">
+        <Label Text="Colore" Style="{StaticResource CaptionLabel}" />
+
+        <CollectionView
+            HeightRequest="56"
+            ItemsSource="{Binding ColorOptions}"
+            SelectionMode="None">
+
+            <CollectionView.ItemsLayout>
+                <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10" />
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:TileColorOption">
+                    <Border
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Margin="0,6"
+                        BackgroundColor="{Binding Color}"
+                        Stroke="Transparent"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="22" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding BindingContext.SelectColorCommand, Source={x:Reference Root}, x:DataType='vm:CardFormViewModel'}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                <Setter Property="Stroke" Value="{StaticResource PrimaryDarkText}" />
+                                <Setter Property="StrokeThickness" Value="3" />
+                            </DataTrigger>
+                        </Border.Triggers>
+
+                        <!-- L'opzione "Automatico" mostra il colore che la carta assumerebbe dal nome -->
+                        <Label
+                            Text="A"
+                            IsVisible="{Binding IsAuto}"
+                            TextColor="White"
+                            FontSize="16"
+                            FontAttributes="Bold"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Label
+            Text="«A» = automatico, derivato dal nome della carta."
+            Style="{StaticResource CaptionLabel}" />
+    </VerticalStackLayout>
+
+</ContentView>
