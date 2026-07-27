@@ -22,11 +22,18 @@
             Clicked="OnSettingsClicked" />
     </ContentPage.ToolbarItems>
 
-    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" RowSpacing="{StaticResource ItemSpacing}">
+    <!--
+        Testata in VerticalStackLayout, non in righe di Grid: uno StackLayout dispone solo i
+        figli visibili, mentre una riga di Grid alta 0 continua a produrre RowSpacing verso le
+        adiacenti. Con gli elementi condizionali (banner, riga filtro, recenti) è la differenza
+        tra "non occupa spazio" e "occupa solo la spaziatura".
+    -->
+    <Grid RowDefinitions="Auto,*">
+
+        <VerticalStackLayout Grid.Row="0" Spacing="{StaticResource ItemSpacing}">
 
         <Border
-            Grid.Row="0"
-            Margin="{StaticResource PagePadding}"
+            Margin="20,8,20,0"
             Padding="12"
             IsVisible="{Binding IsUpdateAvailable}"
             BackgroundColor="{StaticResource Secondary}"
@@ -58,25 +65,34 @@
         </Border>
 
         <SearchBar
-            Grid.Row="1"
-            Margin="{StaticResource PagePadding}"
+            Margin="20,0"
             Placeholder="Cerca per nome o emittente"
             Text="{Binding SearchText}" />
 
-        <Label
-            Grid.Row="2"
-            Margin="20,-8,20,0"
-            Text="{Binding CountText}"
-            Style="{StaticResource CaptionLabel}" />
+        <!--
+            Riga filtro: conteggio (solo sotto filtro) e chip delle label (solo se ne esistono),
+            con visibilità indipendenti. Se non c'è né l'uno né gli altri l'intera riga sparisce.
+        -->
+        <Grid
+            Margin="20,0"
+            ColumnDefinitions="Auto,*"
+            ColumnSpacing="{StaticResource ItemSpacing}"
+            HeightRequest="{StaticResource FilterChipRowHeight}"
+            IsVisible="{Binding HasFilterRow}">
 
-        <!-- Filtro per label: selezione multipla in OR, nascosto finché non esiste nessuna label -->
-        <CollectionView
-            Grid.Row="3"
-            Margin="20,4,20,0"
-            HeightRequest="44"
-            IsVisible="{Binding HasLabelFilters}"
-            ItemsSource="{Binding LabelFilters}"
-            SelectionMode="None">
+            <Label
+                Grid.Column="0"
+                Text="{Binding CountText}"
+                IsVisible="{Binding HasActiveFilter}"
+                Style="{StaticResource CaptionLabel}"
+                VerticalOptions="Center" />
+
+            <!-- Filtro per label: selezione multipla in OR, nascosto finché non esiste nessuna label -->
+            <CollectionView
+                Grid.Column="1"
+                IsVisible="{Binding HasLabelFilters}"
+                ItemsSource="{Binding LabelFilters}"
+                SelectionMode="None">
 
             <CollectionView.ItemsLayout>
                 <LinearItemsLayout Orientation="Horizontal" ItemSpacing="8" />
@@ -84,9 +100,10 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:LabelFilterItem">
+                    <!-- Niente margine verticale: l'altezza la detta la riga, e un margine qui
+                         taglierebbe il chip invece di distanziarlo. -->
                     <Border
-                        Margin="0,4"
-                        Padding="14,6"
+                        Padding="12,4"
                         BackgroundColor="Transparent"
                         Stroke="{StaticResource Gray300}"
                         StrokeThickness="1"
@@ -119,19 +136,16 @@
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
-        </CollectionView>
+            </CollectionView>
+        </Grid>
 
-        <Label
-            Grid.Row="4"
-            Margin="20,4,20,0"
-            Text="Usate di recente"
-            Style="{StaticResource CaptionLabel}"
-            IsVisible="{Binding HasRecentCards}" />
-
+        <!--
+            Barra dei recenti senza didascalia: i riquadri più piccoli la distinguono già dalla
+            griglia, e una riga di testo per dirlo costerebbe quanto la barra stessa.
+        -->
         <CollectionView
-            Grid.Row="5"
-            Margin="20,4"
-            HeightRequest="90"
+            Margin="20,0"
+            HeightRequest="{StaticResource RecentCardsRowHeight}"
             IsVisible="{Binding HasRecentCards}"
             ItemsSource="{Binding RecentCards}"
             SelectionMode="Single"
@@ -144,19 +158,19 @@
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="data:Card">
                     <Border
-                        WidthRequest="110"
-                        HeightRequest="90"
+                        WidthRequest="{StaticResource RecentCardWidth}"
+                        HeightRequest="{StaticResource RecentCardsRowHeight}"
                         BackgroundColor="{Binding ., Converter={StaticResource CardToTileColor}}"
                         StrokeThickness="0">
                         <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="16" />
+                            <RoundRectangle CornerRadius="14" />
                         </Border.StrokeShape>
 
-                        <VerticalStackLayout Padding="10" VerticalOptions="End" Spacing="1">
+                        <VerticalStackLayout Padding="8" VerticalOptions="End" Spacing="0">
                             <Label
                                 Text="{Binding DisplayName}"
                                 TextColor="White"
-                                FontSize="13"
+                                FontSize="12"
                                 FontAttributes="Bold"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="2" />
@@ -173,8 +187,11 @@
 
         </CollectionView>
 
+        </VerticalStackLayout>
+
         <CollectionView
-            Grid.Row="6"
+            Grid.Row="1"
+            Margin="0,8,0,0"
             ItemsSource="{Binding FilteredCards}"
             SelectionMode="Single"
             SelectionChanged="OnCardSelected">
