@@ -23,6 +23,7 @@ public sealed class CardListViewModel : ObservableObject
     private string _countText = string.Empty;
     private bool _hasRecentCards;
     private bool _hasLabelFilters;
+    private bool _hasActiveFilter;
     private string _emptyStateTitle = string.Empty;
     private string _emptyStateSubtitle = string.Empty;
     private bool _isUpdateAvailable;
@@ -57,8 +58,21 @@ public sealed class CardListViewModel : ObservableObject
     public bool HasLabelFilters
     {
         get => _hasLabelFilters;
-        private set => SetProperty(ref _hasLabelFilters, value);
+        private set
+        {
+            if (SetProperty(ref _hasLabelFilters, value))
+            {
+                OnPropertyChanged(nameof(HasFilterRow));
+            }
+        }
     }
+
+    /// <summary>
+    /// Vero se la riga che ospita conteggio e chip ha qualcosa da mostrare. Serve sul
+    /// contenitore, non solo sui figli: un contenitore con altezza fissa occuperebbe spazio
+    /// anche con entrambi i figli invisibili.
+    /// </summary>
+    public bool HasFilterRow => HasLabelFilters || HasActiveFilter;
 
     public string SearchText
     {
@@ -79,11 +93,27 @@ public sealed class CardListViewModel : ObservableObject
         private set => SetProperty(ref _hasRecentCards, value);
     }
 
-    /// <summary>Totale carte a riposo ("30 carte"), trovate/totale durante il filtro ("5/30").</summary>
+    /// <summary>Carte visibili sul totale durante il filtro ("5/30"). Vuoto a riposo.</summary>
     public string CountText
     {
         get => _countText;
         private set => SetProperty(ref _countText, value);
+    }
+
+    /// <summary>
+    /// Vero solo quando un filtro è attivo (testo o label). A riposo il conteggio non si mostra:
+    /// chi sta guardando le proprie carte le sta già vedendo, e la riga costerebbe spazio alla griglia.
+    /// </summary>
+    public bool HasActiveFilter
+    {
+        get => _hasActiveFilter;
+        private set
+        {
+            if (SetProperty(ref _hasActiveFilter, value))
+            {
+                OnPropertyChanged(nameof(HasFilterRow));
+            }
+        }
     }
 
     /// <summary>Titolo dello stato vuoto: distingue "nessuna carta salvata" da "nessun risultato".</summary>
@@ -219,11 +249,10 @@ public sealed class CardListViewModel : ObservableObject
             FilteredCards.Add(card);
         }
 
-        var isFiltered = !string.IsNullOrEmpty(query) || selectedLabels.Count > 0;
+        HasActiveFilter = !string.IsNullOrEmpty(query) || selectedLabels.Count > 0;
 
-        CountText = isFiltered
-            ? $"{FilteredCards.Count}/{_allCards.Count}"
-            : FormatTotal(_allCards.Count);
+        // A riposo il conteggio non si mostra affatto: niente testo da calcolare.
+        CountText = HasActiveFilter ? $"{FilteredCards.Count}/{_allCards.Count}" : string.Empty;
 
         if (_allCards.Count == 0)
         {
@@ -238,8 +267,6 @@ public sealed class CardListViewModel : ObservableObject
                 : "Prova un altro nome o emittente.";
         }
     }
-
-    private static string FormatTotal(int count) => count == 1 ? "1 carta" : $"{count} carte";
 
     /// <summary>Normalizza per un confronto case/accent-insensitive (es. "citta" trova "Città").</summary>
     private static string Normalize(string? value) => TextNormalizer.Normalize(value);
