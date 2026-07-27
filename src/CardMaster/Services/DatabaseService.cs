@@ -11,7 +11,12 @@ namespace CardMaster.Services;
 public sealed class DatabaseService : IDatabaseService
 {
     private const string DatabaseFileName = "cardmaster.db3";
-    private const int SchemaVersion = 1;
+
+    // v2 (change maui-card-color-labels): colonne TileColor e LabelsCsv su Card. Le colonne le
+    // aggiunge CreateTableAsync<Card>() sulle installazioni esistenti (ALTER TABLE ADD COLUMN,
+    // valori NULL = comportamento precedente): l'incremento serve alla guardia del backup Drive
+    // (BackupNaming.CanRestore), perché un backup -v2 non sia ripristinato da un'app più vecchia.
+    private const int SchemaVersion = 2;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private SQLiteAsyncConnection? _connection;

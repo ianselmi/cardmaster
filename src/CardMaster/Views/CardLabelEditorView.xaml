@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="CardMaster.Views.CardLabelEditorView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:CardMaster.ViewModels"
+    x:Name="Root"
+    x:DataType="vm:CardFormViewModel">
+
+    <VerticalStackLayout Spacing="6">
+        <Label Text="Label" Style="{StaticResource CaptionLabel}" />
+
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Entry
+                Grid.Column="0"
+                Text="{Binding NewLabelText}"
+                Placeholder="Es. spesa, benzina"
+                ReturnType="Done"
+                MaxLength="24"
+                ReturnCommand="{Binding AddLabelCommand}" />
+            <Button
+                Grid.Column="1"
+                Text="Aggiungi"
+                Command="{Binding AddLabelCommand}" />
+        </Grid>
+
+        <Label
+            Text="{Binding LabelWarning}"
+            IsVisible="{Binding HasLabelWarning}"
+            Style="{StaticResource CaptionLabel}"
+            TextColor="{StaticResource Primary}" />
+
+        <!-- Label assegnate: tocco sulla ✕ per rimuoverle -->
+        <FlexLayout
+            IsVisible="{Binding HasLabels}"
+            BindableLayout.ItemsSource="{Binding Labels}"
+            Wrap="Wrap"
+            Direction="Row"
+            AlignItems="Start"
+            JustifyContent="Start">
+            <BindableLayout.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type x:String}">
+                    <Border
+                        Margin="0,0,8,8"
+                        Padding="12,6"
+                        BackgroundColor="{StaticResource Secondary}"
+                        StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <HorizontalStackLayout Spacing="8">
+                            <Label
+                                Text="{Binding .}"
+                                TextColor="{StaticResource PrimaryDarkText}"
+                                FontSize="{StaticResource FontSizeBody}"
+                                VerticalOptions="Center" />
+                            <Label
+                                Text="✕"
+                                TextColor="{StaticResource PrimaryDarkText}"
+                                FontSize="{StaticResource FontSizeBody}"
+                                VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        Command="{Binding BindingContext.RemoveLabelCommand, Source={x:Reference Root}, x:DataType='vm:CardFormViewModel'}"
+                                        CommandParameter="{Binding .}" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </HorizontalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </BindableLayout.ItemTemplate>
+        </FlexLayout>
+
+        <!-- Suggerimenti: label già usate su altre carte, un tocco per assegnarle -->
+        <Label
+            Text="Già usate"
+            IsVisible="{Binding HasLabelSuggestions}"
+            Style="{StaticResource CaptionLabel}" />
+
+        <FlexLayout
+            IsVisible="{Binding HasLabelSuggestions}"
+            BindableLayout.ItemsSource="{Binding LabelSuggestions}"
+            Wrap="Wrap"
+            Direction="Row"
+            AlignItems="Start"
+            JustifyContent="Start">
+            <BindableLayout.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type x:String}">
+                    <Border
+                        Margin="0,0,8,8"
+                        Padding="12,6"
+                        BackgroundColor="Transparent"
+                        Stroke="{StaticResource Gray300}"
+                        StrokeThickness="1">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="16" />
+                        </Border.StrokeShape>
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer
+                                Command="{Binding BindingContext.AddSuggestionCommand, Source={x:Reference Root}, x:DataType='vm:CardFormViewModel'}"
+                                CommandParameter="{Binding .}" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            Text="{Binding .}"
+                            FontSize="{StaticResource FontSizeBody}"
+                            VerticalOptions="Center" />
+                    </Border>
+                </DataTemplate>
+            </BindableLayout.ItemTemplate>
+        </FlexLayout>
+    </VerticalStackLayout>
+
+</ContentView>

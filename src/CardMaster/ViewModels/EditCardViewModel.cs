@@ -6,12 +6,13 @@ namespace CardMaster.ViewModels;
 
 /// <summary>
 /// ViewModel della schermata di modifica di una carta esistente. Carica la carta per Id,
-/// consente di correggere nome, emittente (catalogo/libero/nessuno, con ri-arricchimento) e
-/// formato; il valore del barcode è immutabile (sola lettura). Salva via
-/// <see cref="ICardRepository.UpdateAsync"/> ed elimina (tombstone) via
-/// <see cref="ICardRepository.SoftDeleteAsync"/>.
+/// consente di correggere nome, emittente (catalogo/libero/nessuno, con ri-arricchimento),
+/// formato, colore del riquadro e label; il valore del barcode è immutabile (sola lettura).
+/// Salva via <see cref="ICardRepository.UpdateAsync"/> ed elimina (tombstone) via
+/// <see cref="ICardRepository.SoftDeleteAsync"/>. Colore e label arrivano da
+/// <see cref="CardFormViewModel"/>, condiviso con la creazione.
 /// </summary>
-public sealed class EditCardViewModel : ObservableObject, IQueryAttributable
+public sealed class EditCardViewModel : CardFormViewModel, IQueryAttributable
 {
     public const string NoneLabel = "Nessuno";
     public const string OtherLabel = "Altro…";
@@ -24,7 +25,6 @@ public sealed class EditCardViewModel : ObservableObject, IQueryAttributable
     private string _cardId = string.Empty;
     private string _barcodeValue = string.Empty;
     private string? _selectedFormat;
-    private string _displayName = string.Empty;
     private string? _colorHex;
     private string? _logoId;
     private string _selectedIssuerOption = NoneLabel;
@@ -34,6 +34,7 @@ public sealed class EditCardViewModel : ObservableObject, IQueryAttributable
     private bool _loaded;
 
     public EditCardViewModel(ICardRepository cards, IIssuerCatalog catalog)
+        : base(cards)
     {
         _cards = cards;
         _catalog = catalog;
@@ -54,12 +55,6 @@ public sealed class EditCardViewModel : ObservableObject, IQueryAttributable
     {
         get => _selectedFormat;
         set => SetProperty(ref _selectedFormat, value);
-    }
-
-    public string DisplayName
-    {
-        get => _displayName;
-        set => SetProperty(ref _displayName, value);
     }
 
     public string SelectedIssuerOption
@@ -105,6 +100,8 @@ public sealed class EditCardViewModel : ObservableObject, IQueryAttributable
         }
 
         IssuerOptions.Add(OtherLabel);
+
+        await LoadLabelSuggestionsAsync();
     }
 
     public async Task LoadAsync()
@@ -131,6 +128,10 @@ public sealed class EditCardViewModel : ObservableObject, IQueryAttributable
         SelectedFormat = string.IsNullOrWhiteSpace(card.BarcodeFormat) ? null : card.BarcodeFormat;
         _colorHex = card.Color;
         _logoId = card.LogoId;
+
+        // Colore del riquadro e label: scelte dell'utente, indipendenti dall'emittente.
+        SetTileColor(card.TileColor);
+        SetLabels(card.Labels);
 
         // Pre-selezione dell'opzione emittente corrente (catalogo / libero / nessuno).
         if (string.IsNullOrWhiteSpace(card.IssuerName))
@@ -224,6 +225,8 @@ public sealed class EditCardViewModel : ObservableObject, IQueryAttributable
         _card.IssuerName = ResolveIssuerName();
         _card.Color = _colorHex;
         _card.LogoId = _logoId;
+        _card.TileColor = SelectedTileColor;
+        _card.Labels = Labels.ToList();
 
         await _cards.UpdateAsync(_card);
     }

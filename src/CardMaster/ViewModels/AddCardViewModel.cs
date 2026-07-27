@@ -7,9 +7,10 @@ namespace CardMaster.ViewModels;
 /// <summary>
 /// ViewModel della schermata di conferma/modifica carta (scansione o inserimento manuale).
 /// Riceve barcode e formato via query di navigazione; consente di scegliere l'emittente
-/// (catalogo/libero/nessuno) con arricchimento, valida e salva.
+/// (catalogo/libero/nessuno) con arricchimento, il colore del riquadro e le label
+/// (entrambi opzionali, da <see cref="CardFormViewModel"/>), valida e salva.
 /// </summary>
-public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
+public sealed class AddCardViewModel : CardFormViewModel, IQueryAttributable
 {
     public const string NoneLabel = "Nessuno";
     public const string OtherLabel = "Altro…";
@@ -20,7 +21,6 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
 
     private string _barcode = string.Empty;
     private string? _selectedFormat;
-    private string _displayName = string.Empty;
     private string? _colorHex;
     private string? _logoId;
     private string _selectedIssuerOption = NoneLabel;
@@ -35,6 +35,7 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
     private bool _pendingIssuerResolved;
 
     public AddCardViewModel(ICardRepository cards, IIssuerCatalog catalog)
+        : base(cards)
     {
         _cards = cards;
         _catalog = catalog;
@@ -54,12 +55,6 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
     {
         get => _selectedFormat;
         set => SetProperty(ref _selectedFormat, value);
-    }
-
-    public string DisplayName
-    {
-        get => _displayName;
-        set => SetProperty(ref _displayName, value);
     }
 
     public string SelectedIssuerOption
@@ -119,6 +114,8 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
         IssuerOptions.Add(OtherLabel);
 
         ResolvePendingIssuer();
+
+        await LoadLabelSuggestionsAsync();
     }
 
     /// <summary>
@@ -224,6 +221,8 @@ public sealed class AddCardViewModel : ObservableObject, IQueryAttributable
             IssuerName = ResolveIssuerName(),
             Color = _colorHex,
             LogoId = _logoId,
+            TileColor = SelectedTileColor,
+            Labels = Labels.ToList(),
         };
 
         await _cards.AddAsync(card);
