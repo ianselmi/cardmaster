@@ -106,8 +106,12 @@ public sealed class CardListViewModel : ObservableObject
         private set => SetProperty(ref _isUpdateAvailable, value);
     }
 
-    /// <summary>Versione remota rilevata, per il testo del banner; valido solo mentre <see cref="IsUpdateAvailable"/> è vero.</summary>
-    public string? UpdateAvailableVersion => _updateService.LastCheckedRelease?.VersionName ?? _settings.LastUpdateCheckAvailableVersion;
+    /// <summary>
+    /// Versione remota da installare, per il testo del banner; valido solo mentre
+    /// <see cref="IsUpdateAvailable"/> è vero. Già filtrata dal servizio rispetto alla versione
+    /// installata: dopo aver installato l'aggiornamento non annuncia più quella versione.
+    /// </summary>
+    public string? UpdateAvailableVersion => _updateService.AvailableUpdateVersion;
 
     /// <summary>Chiude il banner/badge per la versione corrente, senza toccare il flusso di download in `UpdatePage`.</summary>
     public void DismissUpdateBanner()

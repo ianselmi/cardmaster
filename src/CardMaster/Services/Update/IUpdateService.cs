@@ -1,15 +1,23 @@
 namespace CardMaster.Services.Update;
 
 /// <summary>
-/// Controllo/download degli aggiornamenti dell'app: legge il manifest statico pubblicato dalla
-/// pipeline CI su GitHub Pages, scarica e verifica l'APK. Nessuna autenticazione richiesta (il
-/// repository sorgente resta privato; solo il manifest e l'APK pubblicati sono raggiungibili
-/// pubblicamente). Nessun controllo automatico: sempre su azione esplicita dell'utente.
+/// Controllo/download degli aggiornamenti dell'app: legge la Release GitHub con tag <c>latest</c>
+/// (API pubbliche, repository pubblico), scarica e verifica l'APK. Il controllo avviene su azione
+/// esplicita dell'utente, oppure automaticamente se è attiva l'opzione "Avvisami di nuove versioni"
+/// con le limitazioni di `app-update-notify`.
 /// </summary>
 public interface IUpdateService
 {
     /// <summary>Versione rilevata come disponibile dall'ultimo <see cref="CheckForUpdateAsync"/> riuscito in questa sessione; null se nessuna o non ancora controllato.</summary>
     UpdateRelease? LastCheckedRelease { get; }
+
+    /// <summary>
+    /// Versione da installare, <b>già filtrata rispetto a quella installata</b>: null quando non c'è
+    /// nulla da installare. Unico punto di verità per banner, badge, pagina Aggiornamenti e riga di
+    /// riepilogo: una versione uguale a quella installata NON è un aggiornamento disponibile, anche
+    /// se è ciò che l'ultimo controllo aveva memorizzato.
+    /// </summary>
+    string? AvailableUpdateVersion { get; }
 
     /// <summary>True mentre un download è in corso.</summary>
     bool IsDownloading { get; }
@@ -23,8 +31,19 @@ public interface IUpdateService
     /// <summary>Sollevato a ogni variazione di stato del download (avanzamento, completamento).</summary>
     event EventHandler? StateChanged;
 
-    /// <summary>Interroga il manifest remoto e confronta la versione con quella installata.</summary>
+    /// <summary>Interroga la Release remota e confronta la versione con quella installata.</summary>
     Task<UpdateCheckResult> CheckForUpdateAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Riconcilia lo stato persistito dell'ultimo controllo con la versione installata, <b>senza
+    /// rete</b>: se la versione annunciata come disponibile risulta installata, l'aggiornamento è
+    /// stato installato e quello stato viene azzerato (incluso l'eventuale silenziamento di quella
+    /// stessa versione). Da chiamare a ogni passaggio in foreground, prima di
+    /// <see cref="CheckForUpdateIfDueAsync"/>: senza, l'esito persistito sopravvive
+    /// all'aggiornamento e continua ad annunciare la versione che si sta già usando.
+    /// Idempotente; NON altera la data/ora dell'ultimo controllo.
+    /// </summary>
+    void ReconcileInstalledVersion();
 
     /// <summary>
     /// Esegue <see cref="CheckForUpdateAsync"/> solo se l'utente ha attivato "Avvisami di nuove

@@ -33,6 +33,20 @@ public sealed class UpdateService : IUpdateService
 
     public UpdateRelease? LastCheckedRelease { get; private set; }
 
+    /// <summary>Versione installata, secondo la piattaforma. Confrontabile col nome della Release <c>latest</c>.</summary>
+    private static string InstalledVersion => AppInfo.Current.VersionString;
+
+    public string? AvailableUpdateVersion
+    {
+        get
+        {
+            // LastCheckedRelease vive quanto il processo; la preferenza sopravvive
+            // all'aggiornamento dell'app, quindi va sempre confrontata con l'installato.
+            var candidate = LastCheckedRelease?.VersionName ?? _settings.LastUpdateCheckAvailableVersion;
+            return IsInstalled(candidate) ? null : candidate;
+        }
+    }
+
     public bool IsDownloading { get; private set; }
 
     public double DownloadProgress { get; private set; }
@@ -104,7 +118,7 @@ public sealed class UpdateService : IUpdateService
 
         // Confronto per uguaglianza (non ordinamento): il tag "latest" è sempre allineato
         // all'ultima build pubblicata, quindi "diverso" implica già "più recente" nel flusso normale.
-        if (string.Equals(updateRelease.VersionName, AppInfo.Current.VersionString, StringComparison.Ordinal))
+        if (IsInstalled(updateRelease.VersionName))
         {
             LastCheckedRelease = null;
             _settings.LastUpdateCheckAvailableVersion = null;
@@ -115,6 +129,44 @@ public sealed class UpdateService : IUpdateService
         _settings.LastUpdateCheckAvailableVersion = updateRelease.VersionName;
         return new UpdateCheckResult(UpdateCheckOutcome.UpdateAvailable, updateRelease);
     }
+
+    public void ReconcileInstalledVersion()
+    {
+        var changed = false;
+
+        if (IsInstalled(LastCheckedRelease?.VersionName))
+        {
+            LastCheckedRelease = null;
+            changed = true;
+        }
+
+        if (IsInstalled(_settings.LastUpdateCheckAvailableVersion))
+        {
+            _settings.LastUpdateCheckAvailableVersion = null;
+            changed = true;
+        }
+
+        // Il silenziamento si dimentica SOLO per la versione installata: quello di una versione
+        // remota mai installata resta valido, è una scelta dell'utente ancora attuale.
+        if (IsInstalled(_settings.UpdateNotifyDismissedVersion))
+        {
+            _settings.UpdateNotifyDismissedVersion = null;
+            changed = true;
+        }
+
+        // LastUpdateCheckUtc resta intatto: un controllo è avvenuto davvero, ha solo perso
+        // rilevanza il suo esito. Azzerarlo mostrerebbe "Nessun controllo ancora effettuato"
+        // a chi l'ha appena fatto e farebbe ripartire subito il controllo automatico.
+
+        if (changed)
+        {
+            RaiseStateChanged();
+        }
+    }
+
+    /// <summary>Vero se la versione indicata è quella attualmente installata (aggiornamento già applicato).</summary>
+    private static bool IsInstalled(string? version)
+        => version is not null && string.Equals(version, InstalledVersion, StringComparison.Ordinal);
 
     public async Task CheckForUpdateIfDueAsync(CancellationToken cancellationToken = default)
     {
