@@ -18,7 +18,9 @@ public sealed class UpdateService : IUpdateService
 {
     private const string ReleaseUrl = "https://api.github.com/repos/ianselmi/cardmaster/releases/tags/latest";
     private const string DigestPrefix = "sha256:";
-    private static readonly TimeSpan MinAutoCheckInterval = TimeSpan.FromHours(24);
+    // Deve restare allineato al periodo del lavoro pianificato (IUpdateCheckScheduler): se il
+    // minimo fosse più lungo del periodo, il worker girerebbe a vuoto quasi ogni volta.
+    private static readonly TimeSpan MinAutoCheckInterval = TimeSpan.FromHours(1);
 
     private readonly HttpClient _http;
     private readonly IUpdateNotifier _notifier;
@@ -122,12 +124,36 @@ public sealed class UpdateService : IUpdateService
         {
             LastCheckedRelease = null;
             _settings.LastUpdateCheckAvailableVersion = null;
+            _notifier.CancelUpdateAvailable();
             return new UpdateCheckResult(UpdateCheckOutcome.UpToDate);
         }
 
         LastCheckedRelease = updateRelease;
         _settings.LastUpdateCheckAvailableVersion = updateRelease.VersionName;
+
+        NotifyAvailableIfWanted(updateRelease.VersionName);
+
         return new UpdateCheckResult(UpdateCheckOutcome.UpdateAvailable, updateRelease);
+    }
+
+    /// <summary>
+    /// Emette la notifica di sistema per la versione rilevata, se l'utente ha attivato l'opzione
+    /// e non ha silenziato proprio quella versione. Riemessa a ogni controllo: l'insistenza è
+    /// voluta, e il silenziamento per versione resta la valvola di sfogo.
+    /// </summary>
+    private void NotifyAvailableIfWanted(string version)
+    {
+        if (!_settings.UpdateNotifyEnabled)
+        {
+            return;
+        }
+
+        if (string.Equals(version, _settings.UpdateNotifyDismissedVersion, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _notifier.NotifyUpdateAvailable(version);
     }
 
     public void ReconcileInstalledVersion()
@@ -160,9 +186,18 @@ public sealed class UpdateService : IUpdateService
 
         if (changed)
         {
+            // L'aggiornamento risulta installato: via anche la notifica di sistema, che
+            // altrimenti resterebbe nel pannello ad annunciare la versione in uso.
+            _notifier.CancelUpdateAvailable();
             RaiseStateChanged();
         }
     }
+
+    /// <summary>
+    /// Da chiamare quando l'utente silenzia la versione segnalata o disattiva l'opzione:
+    /// toglie la notifica pendente senza toccare lo stato dell'ultimo controllo.
+    /// </summary>
+    public void CancelUpdateNotification() => _notifier.CancelUpdateAvailable();
 
     /// <summary>Vero se la versione indicata è quella attualmente installata (aggiornamento già applicato).</summary>
     private static bool IsInstalled(string? version)

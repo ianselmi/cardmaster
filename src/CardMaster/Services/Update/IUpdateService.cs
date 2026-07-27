@@ -46,8 +46,15 @@ public interface IUpdateService
     void ReconcileInstalledVersion();
 
     /// <summary>
+    /// Rimuove la notifica di sistema "aggiornamento disponibile" senza toccare lo stato
+    /// dell'ultimo controllo. Da usare quando l'utente silenzia la versione o disattiva
+    /// l'opzione "Avvisami di nuove versioni".
+    /// </summary>
+    void CancelUpdateNotification();
+
+    /// <summary>
     /// Esegue <see cref="CheckForUpdateAsync"/> solo se l'utente ha attivato "Avvisami di nuove
-    /// versioni" e sono trascorse almeno 24 ore dall'ultimo controllo; no-op altrimenti. Pensato per
+    /// versioni" e è trascorso l'intervallo minimo dall'ultimo controllo; no-op altrimenti. Pensato per
     /// essere chiamato a ogni passaggio dell'app in foreground, senza mai interrogare la rete se
     /// l'opzione non è attiva.
     /// </summary>

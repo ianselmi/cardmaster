@@ -18,6 +18,7 @@ public sealed class UpdateViewModel : ObservableObject
     private readonly IUpdateDownloadLauncher _launcher;
     private readonly IApkInstaller _installer;
     private readonly ISettingsStore _settings;
+    private readonly IUpdateCheckScheduler _scheduler;
 
     private bool _isChecking;
     private string? _errorMessage;
@@ -27,12 +28,14 @@ public sealed class UpdateViewModel : ObservableObject
         IUpdateService updateService,
         IUpdateDownloadLauncher launcher,
         IApkInstaller installer,
-        ISettingsStore settings)
+        ISettingsStore settings,
+        IUpdateCheckScheduler scheduler)
     {
         _updateService = updateService;
         _launcher = launcher;
         _installer = installer;
         _settings = settings;
+        _scheduler = scheduler;
 
         CheckCommand = new Command(async () => await CheckAsync(), () => !IsBusy);
         DownloadCommand = new Command(async () => await DownloadAsync(), () => !IsBusy && IsUpdateAvailable);
@@ -81,17 +84,60 @@ public sealed class UpdateViewModel : ObservableObject
     public bool IsDismissed => AvailableVersion is not null
         && string.Equals(AvailableVersion, _settings.UpdateNotifyDismissedVersion, StringComparison.Ordinal);
 
-    /// <summary>Opzione "Avvisami di nuove versioni" (controllo automatico opt-in), mostrata come switch in Impostazioni.</summary>
+    /// <summary>
+    /// Opzione "Avvisami di nuove versioni": controllo automatico opt-in (in foreground e
+    /// periodico ad app chiusa), segnale in-app e notifica di sistema. Mostrata come switch.
+    /// </summary>
     public bool NotifyEnabled
     {
         get => _settings.UpdateNotifyEnabled;
         set
         {
-            if (_settings.UpdateNotifyEnabled != value)
+            if (_settings.UpdateNotifyEnabled == value)
             {
-                _settings.UpdateNotifyEnabled = value;
-                OnPropertyChanged();
+                return;
             }
+
+            _settings.UpdateNotifyEnabled = value;
+            OnPropertyChanged();
+
+            if (value)
+            {
+                _ = EnableBackgroundChecksAsync();
+            }
+            else
+            {
+                _scheduler.Cancel();
+                _updateService.CancelUpdateNotification();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Chiede il permesso notifiche e <b>solo dopo</b> registra il controllo periodico.
+    /// L'ordine conta: WorkManager esegue subito il primo giro di un periodic work, quindi
+    /// schedulando prima si rischia che quella prima notifica venga emessa mentre il dialogo
+    /// del permesso è ancora aperto — e Android la scarta in silenzio.
+    /// </summary>
+    private async Task EnableBackgroundChecksAsync()
+    {
+        await RequestNotificationPermissionAsync();
+        _scheduler.Schedule();
+    }
+
+    /// <summary>
+    /// Chiede il permesso notifiche (Android 13+). Se negato NON si disattiva l'opzione: la
+    /// notifica è un canale in più, il segnale in-app continua a funzionare comunque.
+    /// </summary>
+    private static async Task RequestNotificationPermissionAsync()
+    {
+        try
+        {
+            await Permissions.RequestAsync<Permissions.PostNotifications>();
+        }
+        catch (Exception)
+        {
+            // Permesso non disponibile o richiesta non possibile: si prosegue senza notifiche.
         }
     }
 
@@ -184,6 +230,11 @@ public sealed class UpdateViewModel : ObservableObject
         }
 
         _settings.UpdateNotifyDismissedVersion = AvailableVersion;
+
+        // Silenziare la versione vale per entrambi i canali: altrimenti "ignora" toglierebbe
+        // il banner e lascerebbe la notifica, cioè proprio il segnale più invadente.
+        _updateService.CancelUpdateNotification();
+
         RaiseStateChanged();
     }
 

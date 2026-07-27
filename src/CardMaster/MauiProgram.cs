@@ -45,12 +45,14 @@ public static class MauiProgram
 		services.AddSingleton<IBackupNotifier, Platforms.Android.Services.AndroidBackupNotifier>();
 		services.AddSingleton<IUpdateNotifier, Platforms.Android.Services.AndroidUpdateNotifier>();
 		services.AddSingleton<IUpdateDownloadLauncher, Platforms.Android.Services.AndroidUpdateDownloadLauncher>();
+		services.AddSingleton<IUpdateCheckScheduler, Platforms.Android.Services.AndroidUpdateCheckScheduler>();
 		services.AddSingleton<IApkInstaller, Platforms.Android.Services.AndroidApkInstaller>();
 #else
 		services.AddSingleton<IBackupScheduler, NoopBackupScheduler>();
 		services.AddSingleton<IBackupNotifier, NoopBackupNotifier>();
 		services.AddSingleton<IUpdateNotifier, NoopUpdateNotifier>();
 		services.AddSingleton<IUpdateDownloadLauncher, NoopUpdateDownloadLauncher>();
+		services.AddSingleton<IUpdateCheckScheduler, NoopUpdateCheckScheduler>();
 		services.AddSingleton<IApkInstaller, NoopApkInstaller>();
 #endif
 		// Storage locale SQLite (in chiaro, v1).

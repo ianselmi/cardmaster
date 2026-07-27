@@ -100,6 +100,44 @@ Le build di debug sono firmate con la stessa chiave, quindi l'installazione sopr
 aggiornamento e **i dati dell'app vengono conservati** — che e' esattamente cio' che si vuole
 verificare.
 
+## Trappole gia' incontrate
+
+**Non usare `adb shell pm clear` sulle build di debug.** Il debug usa *Fast Deployment*: gli
+assembly stanno nella cartella dati dell'app (`files/.__override__/`), non nell'APK. `pm clear`
+li cancella e l'app non parte piu', con un `SIGABRT` e in logcat:
+
+```
+monodroid: No assemblies found in '...__override__/x86_64'. Assuming this is part of Fast Deployment. Exiting...
+```
+
+Per ripartire da dati puliti: `adb uninstall com.cardmaster.app` e poi il solito
+`dotnet build -t:Run` — non `pm clear`.
+
+**Lavori periodici di WorkManager (backup, controllo aggiornamenti).**
+
+```powershell
+# elenco dei job dell'app (l'id cambia a ogni ri-registrazione!)
+& $adb shell dumpsys jobscheduler | Select-String "JOB androidx.work.systemjobscheduler.*cardmaster"
+
+# forzare un job: serve il namespace di WorkManager, non basta il package
+& $adb shell cmd jobscheduler run -f -n androidx.work.systemjobscheduler com.cardmaster.app <jobId>
+```
+
+Due comportamenti che sembrano bug e non lo sono:
+
+- **`am force-stop` mette il pacchetto in stato *stopped***: Android non esegue piu' i suoi job, e
+  al riavvio WorkManager logga `Application was force-stopped, rescheduling` e **riprogramma** il
+  job con un id nuovo invece di eseguirlo. Per chiudere l'app senza questo effetto usare
+  `am kill` (che pero' spesso produce comunque il reschedule al riavvio del processo).
+- **Un `PeriodicWorkRequest` non si puo' far scattare prima della sua finestra**, nemmeno con
+  `-f`: quel flag aggira i vincoli di JobScheduler, non il periodo di WorkManager. In logcat si
+  vede `Delaying execution for <Worker> because it is being executed before schedule`. Per
+  verificare davvero il corpo del worker, ridurre temporaneamente il periodo al minimo consentito
+  (15 minuti) e aspettare lo scatto naturale, poi rimettere il periodo vero.
+
+Che il worker sia stato *risolto* si vede comunque in logcat (`WM-WorkerWrapper: ... <Worker>`),
+utile per distinguere "worker non registrato" da "worker non ancora eseguito".
+
 ## Se non parte
 
 - `-List` dice `NON AVVIABILE`: l'immagine di sistema di quell'AVD non e' installata in nessun SDK.

@@ -17,10 +17,64 @@ public sealed class AndroidUpdateNotifier : IUpdateNotifier
     public const string ChannelId = "cardmaster_update";
     public const int ProgressNotificationId = 4301;
 
+    // Id distinto da quello del download: se coincidessero, avviare un download sostituirebbe
+    // la notifica di disponibilità (e il suo tocco porterebbe altrove).
+    public const int UpdateAvailableNotificationId = 4302;
+
     public AndroidUpdateNotifier()
     {
         EnsureChannel(global::Android.App.Application.Context);
     }
+
+    public void NotifyUpdateAvailable(string version)
+    {
+        var context = global::Android.App.Application.Context;
+        EnsureChannel(context);
+
+        var builder = new NotificationCompat.Builder(context, ChannelId)
+            .SetSmallIcon(global::Android.Resource.Drawable.StatSysDownload)
+            .SetContentTitle("Aggiornamento disponibile")
+            .SetContentText($"È disponibile la versione {version}. Tocca per aggiornare.")
+            .SetContentIntent(BuildOpenAppIntent(context))
+            .SetAutoCancel(true)
+            .SetOngoing(false)
+            // Low: un aggiornamento disponibile non deve interrompere l'utente con suono
+            // o heads-up, deve solo essere lì quando guarda il pannello notifiche.
+            .SetPriority(NotificationCompat.PriorityLow);
+
+        NotificationManagerCompat.From(context).Notify(UpdateAvailableNotificationId, builder.Build());
+    }
+
+    public void CancelUpdateAvailable()
+    {
+        NotificationManagerCompat.From(global::Android.App.Application.Context)
+            .Cancel(UpdateAvailableNotificationId);
+    }
+
+    /// <summary>
+    /// Intent che riporta l'app in primo piano (o la avvia se chiusa). Usa il launch intent del
+    /// package: riusa l'Activity singleTop esistente invece di crearne una seconda istanza.
+    /// </summary>
+    private static PendingIntent? BuildOpenAppIntent(Context context)
+    {
+        var intent = context.PackageManager?.GetLaunchIntentForPackage(context.PackageName!);
+        if (intent is null)
+        {
+            return null;
+        }
+
+        intent.SetFlags(ActivityFlags.SingleTop | ActivityFlags.ClearTop);
+        intent.PutExtra(OpenUpdateFlowExtra, true);
+
+        return PendingIntent.GetActivity(
+            context,
+            requestCode: 0,
+            intent,
+            PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+    }
+
+    /// <summary>Extra letto da <c>MainActivity</c> per aprire direttamente il flusso di aggiornamento.</summary>
+    public const string OpenUpdateFlowExtra = "cardmaster.open_update_flow";
 
     public void NotifyProgress(double progress)
     {

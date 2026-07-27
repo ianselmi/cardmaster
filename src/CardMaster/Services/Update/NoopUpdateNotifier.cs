@@ -10,4 +10,12 @@ public sealed class NoopUpdateNotifier : IUpdateNotifier
     public void NotifyResult(bool success)
     {
     }
+
+    public void NotifyUpdateAvailable(string version)
+    {
+    }
+
+    public void CancelUpdateAvailable()
+    {
+    }
 }

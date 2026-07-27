@@ -10,7 +10,12 @@ public partial class App : Application
     private readonly AppShell _shell;
     private readonly IUpdateService _updateService;
 
-    public App(AppShell shell, ISettingsStore settings, IBackupService backup, IUpdateService updateService)
+    public App(
+        AppShell shell,
+        ISettingsStore settings,
+        IBackupService backup,
+        IUpdateService updateService,
+        IUpdateCheckScheduler updateCheckScheduler)
     {
         InitializeComponent();
         _shell = shell;
@@ -26,6 +31,18 @@ public partial class App : Application
         // installato, azzera quello stato. Sincrono e senza rete, quindi vale anche offline e
         // con il controllo automatico disattivato (che è il default).
         _updateService.ReconcileInstalledVersion();
+
+        // Riallinea il controllo periodico alla preferenza: serve a chi aveva gia' l'opzione
+        // attiva prima che il lavoro in background esistesse, e a ripristinarlo dopo un
+        // reset del sistema. Idempotente: ri-registrare non duplica il lavoro.
+        if (settings.UpdateNotifyEnabled)
+        {
+            updateCheckScheduler.Schedule();
+        }
+        else
+        {
+            updateCheckScheduler.Cancel();
+        }
 
         // Controllo aggiornamenti automatico: no-op se l'opzione non è attiva o l'intervallo minimo non è trascorso.
         _ = _updateService.CheckForUpdateIfDueAsync();
