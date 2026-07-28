@@ -62,6 +62,48 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!--
+                Label della carta, in sola lettura (si assegnano dalla modifica): sotto l'area
+                barcode e non sopra, così una carta con molte label non spinge in basso il
+                motivo per cui questa pagina esiste. FlexLayout con Wrap: i chip vanno a capo
+                invece di uscire dallo schermo. Nascosto per intero se la carta non ha label —
+                dentro un VerticalStackLayout un figlio invisibile non occupa né spazio né
+                spaziatura, quindi non serve nascondere altro.
+            -->
+            <FlexLayout
+                IsVisible="{Binding HasLabels}"
+                BindableLayout.ItemsSource="{Binding Labels}"
+                Wrap="Wrap"
+                Direction="Row"
+                AlignItems="Start"
+                JustifyContent="Start">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type x:String}">
+                        <!-- Shrink="0": senza, FlexLayout comprime i chip sotto la loro larghezza
+                             naturale pur di farceli stare in riga, e il testo si tronca ("spesa"
+                             diventa "spes"). A 0 il chip tiene la sua misura e va a capo.
+                             Padding orizzontale 16 e non 12 come nell'editor: lì il testo è
+                             seguito dalla ✕, qui arriva al bordo del chip e l'arrotondamento
+                             della misura del testo su Android ne mangia l'ultima lettera. -->
+                        <Border
+                            Margin="0,0,8,8"
+                            Padding="16,6"
+                            FlexLayout.Shrink="0"
+                            BackgroundColor="{StaticResource Secondary}"
+                            StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="16" />
+                            </Border.StrokeShape>
+                            <Label
+                                Text="{Binding .}"
+                                TextColor="{StaticResource PrimaryDarkText}"
+                                FontSize="{StaticResource FontSizeBody}"
+                                VerticalOptions="Center" />
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </FlexLayout>
+
             <!-- Azioni sulla carta: sotto l'immagine generata -->
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="{StaticResource ItemSpacing}">
                 <Button
