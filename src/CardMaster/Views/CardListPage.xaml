@@ -15,7 +15,6 @@
     </ContentPage.Resources>
 
     <ContentPage.ToolbarItems>
-        <ToolbarItem Text="Aggiungi" Clicked="OnAddClicked" />
         <ToolbarItem
             Text="Impostazioni"
             IconImageSource="{Binding IsUpdateAvailable, Converter={StaticResource UpdateAvailableToIcon}}"
@@ -204,6 +203,17 @@
                     VerticalItemSpacing="12" />
             </CollectionView.ItemsLayout>
 
+            <!-- Spazio scrollabile sotto l'ultima riga, così il bottone tondo non la copre.
+                 BackgroundColor esplicito oltre a Color: lo stile implicito di BoxView in
+                 Styles.xaml dipinge il *BackgroundColor* (Gray950), quindi il solo
+                 Color="Transparent" lascerebbe una fascia nera larga tutta la pagina. -->
+            <CollectionView.Footer>
+                <BoxView
+                    HeightRequest="{StaticResource CardGridBottomInset}"
+                    Color="Transparent"
+                    BackgroundColor="Transparent" />
+            </CollectionView.Footer>
+
             <CollectionView.EmptyView>
                 <VerticalStackLayout
                     Padding="{StaticResource PagePadding}"
@@ -252,6 +262,30 @@
             </CollectionView.ItemTemplate>
 
         </CollectionView>
+
+        <!--
+            Aggiunta carta come bottone tondo: sovrapposto alla griglia nella *stessa* cella
+            (secondo figlio di Grid.Row=1), non in una riga propria, altrimenti sottrarrebbe
+            altezza alle carte — proprio ciò che maui-card-list-compact-header ha recuperato.
+            Fuori dall'area scrollabile, quindi resta fermo mentre la lista scorre.
+        -->
+        <Button
+            Grid.Row="1"
+            Text="+"
+            SemanticProperties.Description="Aggiungi carta"
+            WidthRequest="{StaticResource AddFabSize}"
+            HeightRequest="{StaticResource AddFabSize}"
+            CornerRadius="{StaticResource AddFabCornerRadius}"
+            FontSize="{StaticResource AddFabGlyphFontSize}"
+            Padding="0"
+            Margin="{StaticResource AddFabMargin}"
+            HorizontalOptions="Center"
+            VerticalOptions="End"
+            Clicked="OnAddClicked">
+            <Button.Shadow>
+                <Shadow Brush="Black" Opacity="0.3" Radius="8" Offset="0,2" />
+            </Button.Shadow>
+        </Button>
 
     </Grid>
 

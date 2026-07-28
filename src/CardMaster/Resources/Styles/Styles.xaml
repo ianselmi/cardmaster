@@ -18,6 +18,21 @@
     <x:Double x:Key="RecentCardsRowHeight">76</x:Double>
     <x:Double x:Key="RecentCardWidth">96</x:Double>
 
+    <!-- Bottone tondo di aggiunta carta (change maui-card-list-add-fab): 56 dp è la misura
+         standard del FAB Android, ben sopra la soglia di 48 dp di area tocco. Il raggio è
+         metà del lato: è ciò che rende il bottone un cerchio invece di uno stadio. -->
+    <x:Double x:Key="AddFabSize">56</x:Double>
+    <x:Int32 x:Key="AddFabCornerRadius">28</x:Int32>
+    <x:Double x:Key="AddFabGlyphFontSize">30</x:Double>
+    <Thickness x:Key="AddFabMargin">0,0,0,16</Thickness>
+
+    <!-- Spazio riservato in fondo alla griglia carte: lato (56) + margine (16) del bottone,
+         più un gap di 12, così l'ultima riga di carte si scorre sopra al bottone invece di
+         finirci sotto. Derivato dai valori qui sopra: se cambiano, va rivisto anche questo.
+         Reso come footer della CollectionView e non come Padding: ItemsView non espone
+         Padding, e un Margin ridurrebbe il viewport invece di riservare spazio scrollabile. -->
+    <x:Double x:Key="CardGridBottomInset">84</x:Double>
+
     <!-- Etichetta secondaria (caption) usata per label di sezione e sottotitoli -->
     <Style TargetType="Label" x:Key="CaptionLabel">
         <Setter Property="FontSize" Value="{StaticResource FontSizeCaption}" />
