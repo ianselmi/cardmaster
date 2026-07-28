@@ -1,5 +1,6 @@
 using CardMaster.Data;
 using CardMaster.Services;
+using CardMaster.Views;
 
 namespace CardMaster.ViewModels;
 
@@ -19,6 +20,7 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
     private ImageSource? _barcodeImage;
     private bool _barcodeAvailable;
     private IReadOnlyList<string> _labels = Array.Empty<string>();
+    private Color _tileColor = CardTilePalette.ForCard(null);
     private bool _loaded;
     private bool _lastUsedTouched;
 
@@ -88,6 +90,17 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
     /// <summary>Vero se la carta ha almeno una label (nasconde l'intera sezione quando falso).</summary>
     public bool HasLabels => _labels.Count > 0;
 
+    /// <summary>
+    /// Colore identitario della carta, lo stesso del riquadro nella griglia: la regola
+    /// "colore scelto dall'utente, altrimenti derivato dal nome" resta in
+    /// <see cref="CardTilePalette.ForCard"/>, qui si proietta soltanto.
+    /// </summary>
+    public Color TileColor
+    {
+        get => _tileColor;
+        private set => SetProperty(ref _tileColor, value);
+    }
+
     /// <summary>Esito del caricamento: false se la carta non esiste (la pagina torna indietro).</summary>
     public bool CardExists { get; private set; }
 
@@ -113,9 +126,10 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
         if (card is null)
         {
             CardExists = false;
-            // Azzerate esplicitamente: un ReloadAsync su una carta appena eliminata
-            // lascerebbe altrimenti i chip della carta che non c'è più.
+            // Azzerati esplicitamente: un ReloadAsync su una carta appena eliminata
+            // lascerebbe altrimenti in scena i chip e il colore della carta che non c'è più.
             Labels = Array.Empty<string>();
+            TileColor = CardTilePalette.ForCard(null);
             return;
         }
 
@@ -124,6 +138,7 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
         IssuerName = card.IssuerName;
         BarcodeValue = card.Barcode;
         Labels = card.Labels;
+        TileColor = CardTilePalette.ForCard(card);
 
         var result = _renderer.Render(card.Barcode, card.BarcodeFormat);
         BarcodeImage = result.Image;
