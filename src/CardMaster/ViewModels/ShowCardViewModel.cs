@@ -18,6 +18,7 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
     private string _barcodeValue = string.Empty;
     private ImageSource? _barcodeImage;
     private bool _barcodeAvailable;
+    private IReadOnlyList<string> _labels = Array.Empty<string>();
     private bool _loaded;
     private bool _lastUsedTouched;
 
@@ -68,6 +69,25 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
     /// <summary>Vero se il barcode NON è generabile (mostra messaggio di fallback).</summary>
     public bool BarcodeUnavailable => !_barcodeAvailable;
 
+    /// <summary>
+    /// Label assegnate alla carta, in sola lettura: qui si mostrano soltanto, si assegnano
+    /// dalla schermata di modifica. Arrivano con la carta già caricata, senza query in più.
+    /// </summary>
+    public IReadOnlyList<string> Labels
+    {
+        get => _labels;
+        private set
+        {
+            if (SetProperty(ref _labels, value))
+            {
+                OnPropertyChanged(nameof(HasLabels));
+            }
+        }
+    }
+
+    /// <summary>Vero se la carta ha almeno una label (nasconde l'intera sezione quando falso).</summary>
+    public bool HasLabels => _labels.Count > 0;
+
     /// <summary>Esito del caricamento: false se la carta non esiste (la pagina torna indietro).</summary>
     public bool CardExists { get; private set; }
 
@@ -93,6 +113,9 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
         if (card is null)
         {
             CardExists = false;
+            // Azzerate esplicitamente: un ReloadAsync su una carta appena eliminata
+            // lascerebbe altrimenti i chip della carta che non c'è più.
+            Labels = Array.Empty<string>();
             return;
         }
 
@@ -100,6 +123,7 @@ public sealed class ShowCardViewModel : ObservableObject, IQueryAttributable
         DisplayName = card.DisplayName;
         IssuerName = card.IssuerName;
         BarcodeValue = card.Barcode;
+        Labels = card.Labels;
 
         var result = _renderer.Render(card.Barcode, card.BarcodeFormat);
         BarcodeImage = result.Image;

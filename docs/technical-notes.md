@@ -55,6 +55,17 @@ sulla seconda. Per uno spaziatore invisibile servono **entrambe** a `Transparent
 Vale lo stesso principio per `Border`, il cui stile implicito impone `Stroke` e `StrokeThickness="1"`:
 un bordo "senza contorno" richiede `StrokeThickness="0"` esplicito.
 
+### `FlexLayout` comprime i figli invece di mandarli a capo
+> Origine: `maui-show-card-labels` (28 lug 2026).
+
+In un `FlexLayout` con `Wrap="Wrap"`, lo `Shrink` di default (`1`) permette di **restringere gli item
+sotto la loro larghezza naturale** pur di farceli stare in riga: dei chip con testo mostrano
+"spesa" come "spes". Per avere davvero l'andare a capo serve `FlexLayout.Shrink="0"` sui figli.
+
+Correlato: un `Label` che arriva al bordo del suo contenitore può perdere l'ultima lettera per
+arrotondamento nella misura del testo su Android (`"farmacia"` → `"farmaci"`). Qualche unità di
+padding orizzontale in più lo assorbe.
+
 ### `CollectionView` non ha `Padding`
 `ItemsView` non espone `Padding` (l'uso dà `error MAUIX2002` in compilazione). Per riservare spazio
 in fondo alla lista — es. perché l'ultima riga non finisca sotto a un elemento sovrapposto — usare
