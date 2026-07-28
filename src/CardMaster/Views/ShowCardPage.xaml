@@ -38,6 +38,29 @@
                 </Border.StrokeShape>
 
                 <VerticalStackLayout Spacing="12">
+                    <!-- Nome della carta in cima al riquadro che si porge al cassiere: si legge
+                         nell'ordine naturale (quale carta, poi il suo codice). Fascia a tutta
+                         larghezza col colore identitario della carta — lo stesso del riquadro
+                         nella griglia — così il colore riguarda la riga del nome e non l'area
+                         del barcode, che resta bianca. Testo bianco senza AppThemeBinding:
+                         la palette è tarata per il bianco e la fascia non cambia col tema. -->
+                    <Border
+                        Padding="12,8"
+                        BackgroundColor="{Binding TileColor}"
+                        StrokeThickness="0"
+                        HorizontalOptions="Fill">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Label
+                            Text="{Binding DisplayName}"
+                            FontSize="{StaticResource FontSizeTitle}"
+                            FontAttributes="Bold"
+                            TextColor="White"
+                            MaxLines="2"
+                            HorizontalTextAlignment="Center" />
+                    </Border>
+
                     <Image
                         Source="{Binding BarcodeImage}"
                         IsVisible="{Binding BarcodeAvailable}"
