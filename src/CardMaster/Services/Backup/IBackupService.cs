@@ -2,9 +2,10 @@ namespace CardMaster.Services.Backup;
 
 /// <summary>
 /// Orchestrazione del backup/ripristino su Google Drive: abilitazione (autenticazione +
-/// schedulazione), esecuzione dello snapshot+upload con ritenzione, lista e ripristino con
-/// snapshot di sicurezza e undo, gestione dello stato locale. Un solo account collegato alla
-/// volta (il cambio account passa da <see cref="DisableAsync"/> + <see cref="EnableAsync"/>).
+/// schedulazione), esecuzione dello snapshot+upload con ritenzione, lista e ripristino
+/// preceduto da un backup della situazione corrente, gestione dello stato locale. Un solo
+/// account collegato alla volta (il cambio account passa da <see cref="DisableAsync"/> +
+/// <see cref="EnableAsync"/>).
 /// </summary>
 public interface IBackupService
 {
@@ -54,11 +55,12 @@ public interface IBackupService
     /// <summary>Elenco in-app dei backup disponibili su Drive.</summary>
     Task<IReadOnlyList<DriveBackupFile>> ListBackupsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Ripristina il backup indicato sostituendo l'intero database (con snapshot di sicurezza).</summary>
+    /// <summary>
+    /// Ripristina il backup indicato sostituendo l'intero database. La situazione corrente viene
+    /// prima salvata su Drive come backup ordinario: se quel backup non riesce il ripristino non
+    /// viene eseguito (<see cref="RestoreOutcome.PreBackupFailed"/>) e il database resta intatto.
+    /// </summary>
     Task<RestoreResult> RestoreAsync(string backupId, CancellationToken cancellationToken = default);
-
-    /// <summary>Annulla l'ultimo ripristino tornando allo snapshot di sicurezza. False se non disponibile.</summary>
-    Task<bool> UndoLastRestoreAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Rilegge la quota da Drive e ne aggiorna la cache locale. Null se non disponibile.</summary>
     Task<StorageQuota?> RefreshQuotaAsync(CancellationToken cancellationToken = default);

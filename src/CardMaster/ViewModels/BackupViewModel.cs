@@ -259,7 +259,7 @@ public sealed class BackupViewModel : ObservableObject
 
         var confirm = await ConfirmAsync(
             "Ripristina backup",
-            $"Il database attuale verrà SOSTITUITO con il backup del {item.DateText}. Operazione irreversibile (verrà comunque creata una copia di sicurezza locale). Continuare?",
+            $"Le carte attuali verranno prima salvate su Drive come nuovo backup, poi SOSTITUITE con il backup del {item.DateText}. Continuare?",
             "Ripristina");
         if (!confirm)
         {
@@ -272,22 +272,28 @@ public sealed class BackupViewModel : ObservableObject
         switch (result.Outcome)
         {
             case RestoreOutcome.Success:
-                var undo = await ConfirmAsync(
+                await AlertAsync(
                     "Ripristino completato",
-                    "I dati sono stati ripristinati. Vuoi annullare e tornare allo stato precedente?",
-                    "Annulla ripristino",
-                    "Mantieni");
-                if (undo)
-                {
-                    await RunBusyAsync(async () => await _backup.UndoLastRestoreAsync());
-                }
-
+                    "I dati sono stati ripristinati. Per tornare indietro, ripristina il backup più recente: è quello con le carte di prima.");
                 break;
             case RestoreOutcome.SchemaTooNew:
                 await AlertAsync("Ripristina", "Questo backup è stato creato da una versione più recente dell'app. Aggiorna l'app per ripristinarlo.");
                 break;
             case RestoreOutcome.NotFound:
                 await AlertAsync("Ripristina", "Backup non più disponibile.");
+                break;
+            case RestoreOutcome.PreBackupFailed:
+                // Il fallimento è del backup, non del ripristino: lo stato mostrato va riletto
+                // (il banner riflette il tentativo di backup appena fallito).
+                await AlertAsync(
+                    "Ripristina",
+                    $"Non è stato possibile salvare su Drive le carte attuali: il ripristino non è stato eseguito e i tuoi dati sono rimasti come prima.\n\n{AlertTextFor(result.Kind)}");
+                RaiseStateChanged();
+                break;
+            case RestoreOutcome.Failed when result.Kind == BackupErrorKind.Local:
+                await AlertAsync(
+                    "Ripristina",
+                    "La sostituzione dei dati si è interrotta. Riprova il ripristino: se i dati non tornassero come prima, ripristina il backup più recente, appena creato con le carte di partenza.");
                 break;
             default:
                 await AlertAsync("Ripristina", AlertTextFor(result.Kind));

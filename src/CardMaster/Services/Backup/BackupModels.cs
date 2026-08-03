@@ -61,6 +61,14 @@ public enum RestoreOutcome
     SchemaTooNew,
     NotFound,
     Failed,
+
+    /// <summary>
+    /// La situazione corrente non è stata salvata su Drive, quindi il ripristino non è stato
+    /// eseguito e il database è rimasto intatto. È l'unico esito in cui il fallimento riguarda
+    /// il backup e non il ripristino: la categoria in <see cref="RestoreResult.Kind"/> è quella
+    /// del backup fallito.
+    /// </summary>
+    PreBackupFailed,
 }
 
 /// <summary>
