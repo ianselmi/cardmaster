@@ -12,8 +12,10 @@ Il backup (`maui-backup-drive`, vedi `openspec/changes/maui-backup-drive`) auten
 **APIs & Services → OAuth consent screen**:
 
 - **User type**: External.
-- **Scopes**: aggiungi `.../auth/drive.appdata` e `openid`/`email`. Sono scope **non sensibili/non restricted**: non serve la security assessment annuale a pagamento richiesta invece da `drive` o `drive.file`.
-- **Publishing status**: portalo su **In production** appena possibile. In stato *Testing* i refresh token scadono dopo **7 giorni**, il che rompe il backup schedulato silenziosamente (l'utente si ritroverebbe a dover ri-autenticarsi ogni settimana).
+- **Scopes**: aggiungi `.../auth/drive.appdata` e `openid`/`email`. Google classifica `drive.appdata` come **non-sensitive** (come `drive.file`, lo scope che raccomanda): niente verifica obbligatoria dell'app, e niente security assessment annuale a pagamento — quella riguarda gli scope **restricted** (`drive`, `drive.readonly`, `drive.metadata`…), che qui non servono.
+- **Publishing status**: portalo su **In production** appena possibile. In stato *Testing* i refresh token scadono dopo **7 giorni**, il che rompe il backup schedulato silenziosamente (l'utente si ritroverebbe a dover ri-autenticarsi ogni settimana). Con soli scope non-sensitive **basta il bottone "Publish app"**: nessuna verifica da attendere, e non compaiono né la schermata "app non verificata" né il tetto dei 100 utenti (scattano solo per scope sensitive/restricted non verificati). Vanno però compilati i campi obbligatori della consent screen (nome app, email di supporto, contatto sviluppatore); mostrare **nome e logo** nella schermata di consenso richiede in più la *brand verification*, che è estetica e non blocca il backup.
+  - **Dopo aver pubblicato, riconnetti l'account una volta.** Il refresh token già in mano all'app è stato emesso sotto *Testing* e muore comunque al settimo giorno: cambiare stato non lo rinnova. Serve un nuovo consenso (azione "Riconnetti l'account Google" nella schermata backup) perché ne venga emesso uno senza scadenza fissa. Saltare questo passaggio fa sembrare che la pubblicazione non abbia avuto effetto.
+  - In produzione il refresh token non scade a tempo, ma resta revocabile: revoca dell'utente dall'account Google, **sei mesi** senza usarlo, cambio password. È il motivo per cui lo stato "riconnessione necessaria" serve comunque.
 
 ## 3. Crea l'OAuth client (tipo Android)
 
