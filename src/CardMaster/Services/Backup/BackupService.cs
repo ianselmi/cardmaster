@@ -5,7 +5,8 @@ namespace CardMaster.Services.Backup;
 /// <summary>
 /// Implementazione di <see cref="IBackupService"/>. Coordina auth, Drive client, database e
 /// scheduler; non lancia mai eccezioni non controllate verso la UI (gli errori diventano
-/// esiti). Lo snapshot di sicurezza pre-ripristino resta in cache per un undo immediato.
+/// esiti). Il ripristino è preceduto da un backup ordinario della situazione corrente su Drive,
+/// che è anche l'unica rete di sicurezza: niente copie locali, niente undo.
 /// </summary>
 public sealed class BackupService : IBackupService
 {
@@ -16,8 +17,6 @@ public sealed class BackupService : IBackupService
     private readonly IBackupScheduler _scheduler;
     private readonly IBackupNotifier _notifier;
     private readonly IBackupEnvironment _environment;
-
-    private string? _safetySnapshotPath;
 
     public BackupService(
         IGoogleAuth auth,
@@ -219,6 +218,10 @@ public sealed class BackupService : IBackupService
             return new RestoreResult(RestoreOutcome.SchemaTooNew);
         }
 
+        // Il download precede il backup della situazione corrente perché quest'ultimo consuma
+        // uno slot di ritenzione e può eliminare proprio il file scelto (è il caso di chi
+        // ripristina il più vecchio dei 3). Con la copia già in cache, la sua eventuale
+        // sparizione da Drive non tocca il ripristino in corso.
         var downloadPath = Path.Combine(_environment.CacheDirectory, $"restore-{Guid.NewGuid():N}.db3");
         try
         {
@@ -230,65 +233,34 @@ public sealed class BackupService : IBackupService
             return RestoreFailure(ex);
         }
 
-        // Snapshot di sicurezza del DB corrente prima di sostituirlo (per undo immediato).
-        var safetyPath = Path.Combine(_environment.CacheDirectory, $"safety-{Guid.NewGuid():N}.db3");
         try
         {
-            await _database.SnapshotAsync(safetyPath).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is IOException or InvalidOperationException)
-        {
-            TryDelete(downloadPath);
-            TryDelete(safetyPath);
-            return new RestoreResult(RestoreOutcome.Failed, ex.Message, BackupErrorKind.Local);
-        }
+            // Rete di sicurezza del ripristino: la situazione corrente finisce su Drive come
+            // backup ordinario, quindi elencabile e ripristinabile come tutti gli altri. Se non
+            // ci riesce il database non si tocca: senza copia di sicurezza non si sostituisce.
+            var preBackup = await BackupNowAsync(cancellationToken).ConfigureAwait(false);
+            if (!preBackup.Success)
+            {
+                return new RestoreResult(RestoreOutcome.PreBackupFailed, preBackup.ErrorMessage, preBackup.Kind);
+            }
 
-        try
-        {
-            await _database.ReplaceFromAsync(downloadPath).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            // Swap fallito a metà: ripristina lo stato precedente dallo snapshot di sicurezza.
             try
             {
-                await _database.ReplaceFromAsync(safetyPath).ConfigureAwait(false);
+                await _database.ReplaceFromAsync(downloadPath).ConfigureAwait(false);
             }
-            catch (Exception undoEx) when (undoEx is IOException or InvalidOperationException)
+            catch (Exception ex)
             {
-                // Nulla di più da fare in automatico; lo snapshot resta in cache.
+                // Swap fallito a metà, nessun rollback automatico: la via di recupero è il
+                // backup appena caricato, che la UI indica esplicitamente all'utente.
+                return new RestoreResult(RestoreOutcome.Failed, ex.Message, BackupErrorKind.Local);
             }
 
+            return new RestoreResult(RestoreOutcome.Success);
+        }
+        finally
+        {
             TryDelete(downloadPath);
-            return new RestoreResult(RestoreOutcome.Failed, ex.Message, BackupErrorKind.Local);
         }
-
-        // Conserva lo snapshot di sicurezza per un eventuale undo esplicito dell'utente.
-        TryDelete(_safetySnapshotPath);
-        _safetySnapshotPath = safetyPath;
-        TryDelete(downloadPath);
-        return new RestoreResult(RestoreOutcome.Success);
-    }
-
-    public async Task<bool> UndoLastRestoreAsync(CancellationToken cancellationToken = default)
-    {
-        if (_safetySnapshotPath is null || !File.Exists(_safetySnapshotPath))
-        {
-            return false;
-        }
-
-        try
-        {
-            await _database.ReplaceFromAsync(_safetySnapshotPath).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is IOException or InvalidOperationException)
-        {
-            return false;
-        }
-
-        TryDelete(_safetySnapshotPath);
-        _safetySnapshotPath = null;
-        return true;
     }
 
     public async Task<StorageQuota?> RefreshQuotaAsync(CancellationToken cancellationToken = default)
