@@ -24,13 +24,49 @@
             <!-- Stato abilitato: informazioni e azioni -->
             <VerticalStackLayout IsVisible="{Binding IsEnabled}" Spacing="{StaticResource SectionSpacing}">
 
+                <!--
+                    Banner di stato: resta finché il problema non è risolto (l'esito è persistito),
+                    così un backup schedulato fallito non passa più inosservato.
+                -->
+                <Border
+                    Padding="12"
+                    IsVisible="{Binding IsStatusBannerVisible}"
+                    BackgroundColor="#B00020"
+                    StrokeThickness="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="12" />
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="{StaticResource ItemSpacing}">
+                        <Label
+                            Text="{Binding StatusTitle}"
+                            TextColor="White"
+                            FontAttributes="Bold"
+                            FontSize="{StaticResource FontSizeBody}" />
+                        <Label
+                            Text="{Binding StatusDetail}"
+                            TextColor="White"
+                            FontSize="{StaticResource FontSizeBody}" />
+                        <Label
+                            Text="{Binding LastAttemptText}"
+                            TextColor="White"
+                            Opacity="0.85"
+                            FontSize="{StaticResource FontSizeBody}" />
+                        <Button
+                            Text="Riconnetti l'account Google"
+                            IsVisible="{Binding IsReconnectVisible}"
+                            Command="{Binding ReconnectCommand}"
+                            IsEnabled="{Binding IsNotBusy}" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <VerticalStackLayout Spacing="4">
                     <Label Text="Account collegato" Style="{StaticResource CaptionLabel}" />
                     <Label Text="{Binding AccountEmail}" FontSize="{StaticResource FontSizeBody}" />
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Ultimo backup" Style="{StaticResource CaptionLabel}" />
+                    <Label Text="Ultimo backup riuscito" Style="{StaticResource CaptionLabel}" />
                     <Label Text="{Binding LastBackupText}" FontSize="{StaticResource FontSizeBody}" />
                 </VerticalStackLayout>
 

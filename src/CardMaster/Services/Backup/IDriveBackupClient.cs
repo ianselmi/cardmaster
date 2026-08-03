@@ -31,6 +31,9 @@ public sealed class DriveBackupException : Exception
     {
     }
 
-    /// <summary>True quando le credenziali non sono più valide e serve ri-autenticarsi.</summary>
-    public bool RequiresReauth { get; init; }
+    /// <summary>
+    /// Categoria dell'errore, unica fonte di verità per il messaggio mostrato all'utente.
+    /// <see cref="BackupErrorKind.ReauthRequired"/> significa credenziali non più valide.
+    /// </summary>
+    public BackupErrorKind Kind { get; init; } = BackupErrorKind.Service;
 }

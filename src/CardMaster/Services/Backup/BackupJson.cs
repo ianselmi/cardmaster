@@ -47,12 +47,32 @@ internal sealed class UploadMetadata
     [JsonPropertyName("parents")] public string[]? Parents { get; set; }
 }
 
+// Payload d'errore delle API Google: il campo "reason" è ciò che distingue uno spazio Drive
+// esaurito (storageQuotaExceeded) da un rate limit, entrambi restituiti come 403.
+internal sealed class ErrorResponse
+{
+    [JsonPropertyName("error")] public ErrorDetail? Error { get; set; }
+}
+
+internal sealed class ErrorDetail
+{
+    [JsonPropertyName("code")] public int Code { get; set; }
+    [JsonPropertyName("message")] public string? Message { get; set; }
+    [JsonPropertyName("errors")] public List<ErrorItem>? Errors { get; set; }
+}
+
+internal sealed class ErrorItem
+{
+    [JsonPropertyName("reason")] public string? Reason { get; set; }
+}
+
 [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(TokenResponse))]
 [JsonSerializable(typeof(AboutResponse))]
 [JsonSerializable(typeof(FileListResponse))]
 [JsonSerializable(typeof(DriveFileDto))]
 [JsonSerializable(typeof(UploadMetadata))]
+[JsonSerializable(typeof(ErrorResponse))]
 internal sealed partial class BackupJsonContext : JsonSerializerContext
 {
 }
