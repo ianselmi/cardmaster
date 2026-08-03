@@ -31,6 +31,7 @@ public sealed class BackupViewModel : ObservableObject
         _backup = backup;
 
         EnableCommand = new Command(async () => await EnableAsync(), () => !IsBusy);
+        ReconnectCommand = new Command(async () => await ReconnectAsync(), () => !IsBusy);
         DisableCommand = new Command(async () => await DisableAsync(), () => !IsBusy);
         BackupNowCommand = new Command(async () => await BackupNowAsync(), () => !IsBusy);
         LoadRestoreListCommand = new Command(async () => await LoadRestoreListAsync(), () => !IsBusy);
@@ -38,6 +39,8 @@ public sealed class BackupViewModel : ObservableObject
     }
 
     public Command EnableCommand { get; }
+
+    public Command ReconnectCommand { get; }
 
     public Command DisableCommand { get; }
 
@@ -88,6 +91,31 @@ public sealed class BackupViewModel : ObservableObject
         }
     }
 
+    /// <summary>Salute del backup: guida il banner di stato e la visibilità della riconnessione.</summary>
+    public BackupHealth Health => _backup.LastError switch
+    {
+        BackupErrorKind.None => BackupHealth.Ok,
+        BackupErrorKind.ReauthRequired => BackupHealth.ReauthRequired,
+        _ => BackupHealth.Failed,
+    };
+
+    public bool IsStatusBannerVisible => Health != BackupHealth.Ok;
+
+    public bool IsReconnectVisible => Health == BackupHealth.ReauthRequired;
+
+    public string StatusTitle => MessageFor(_backup.LastError).Title;
+
+    public string StatusDetail => MessageFor(_backup.LastError).Detail;
+
+    /// <summary>
+    /// Data dell'ultimo tentativo fallito. Sta accanto a <see cref="LastBackupText"/> (ultimo
+    /// backup riuscito) proprio per non far credere che i dati su Drive siano aggiornati.
+    /// </summary>
+    public string LastAttemptText =>
+        _backup.LastAttemptUtc is { } utc
+            ? $"Ultimo tentativo: {utc.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.CurrentCulture)}"
+            : string.Empty;
+
     public string QuotaText
     {
         get
@@ -126,8 +154,10 @@ public sealed class BackupViewModel : ObservableObject
 
         if (_backup.IsEnabled)
         {
+            // La lettura della quota è anche il modo in cui un token revocato viene scoperto
+            // all'apertura della pagina: va quindi ri-notificato lo stato, non solo la quota.
             await _backup.RefreshQuotaAsync().ConfigureAwait(true);
-            OnPropertyChanged(nameof(QuotaText));
+            RaiseStateChanged();
         }
     }
 
@@ -164,6 +194,20 @@ public sealed class BackupViewModel : ObservableObject
         RaiseStateChanged();
     }
 
+    private async Task ReconnectAsync()
+    {
+        await RunBusyAsync(async () =>
+        {
+            var ok = await _backup.ReconnectAsync();
+            if (!ok)
+            {
+                await AlertAsync("Backup", "Riconnessione non completata. Il backup resta in attesa di un nuovo accesso a Google.");
+            }
+        });
+
+        RaiseStateChanged();
+    }
+
     private async Task BackupNowAsync()
     {
         await RunBusyAsync(async () =>
@@ -171,11 +215,10 @@ public sealed class BackupViewModel : ObservableObject
             var result = await _backup.BackupNowAsync();
             await AlertAsync(
                 "Backup",
-                result.Success ? "Backup completato con successo." : $"Backup non riuscito. {result.ErrorMessage}");
+                result.Success ? "Backup completato con successo." : AlertTextFor(result.Kind));
         });
 
-        OnPropertyChanged(nameof(LastBackupText));
-        OnPropertyChanged(nameof(QuotaText));
+        RaiseStateChanged();
     }
 
     private async Task LoadRestoreListAsync()
@@ -201,7 +244,8 @@ public sealed class BackupViewModel : ObservableObject
             }
             catch (DriveBackupException ex)
             {
-                await AlertAsync("Ripristina", $"Impossibile leggere i backup. {ex.Message}");
+                await AlertAsync("Ripristina", AlertTextFor(ex.Kind));
+                RaiseStateChanged();
             }
         });
     }
@@ -246,7 +290,8 @@ public sealed class BackupViewModel : ObservableObject
                 await AlertAsync("Ripristina", "Backup non più disponibile.");
                 break;
             default:
-                await AlertAsync("Ripristina", $"Ripristino non riuscito. {result.ErrorMessage}");
+                await AlertAsync("Ripristina", AlertTextFor(result.Kind));
+                RaiseStateChanged();
                 break;
         }
     }
@@ -277,11 +322,18 @@ public sealed class BackupViewModel : ObservableObject
         OnPropertyChanged(nameof(LastBackupText));
         OnPropertyChanged(nameof(QuotaText));
         OnPropertyChanged(nameof(SelectedFrequency));
+        OnPropertyChanged(nameof(Health));
+        OnPropertyChanged(nameof(IsStatusBannerVisible));
+        OnPropertyChanged(nameof(IsReconnectVisible));
+        OnPropertyChanged(nameof(StatusTitle));
+        OnPropertyChanged(nameof(StatusDetail));
+        OnPropertyChanged(nameof(LastAttemptText));
     }
 
     private void RaiseCommandStates()
     {
         EnableCommand.ChangeCanExecute();
+        ReconnectCommand.ChangeCanExecute();
         DisableCommand.ChangeCanExecute();
         BackupNowCommand.ChangeCanExecute();
         LoadRestoreListCommand.ChangeCanExecute();
@@ -290,6 +342,38 @@ public sealed class BackupViewModel : ObservableObject
 
     private static string LabelFor(BackupFrequency frequency) =>
         Frequencies.First(f => f.Value == frequency).Label;
+
+    /// <summary>
+    /// Testo mostrato per ogni categoria d'errore: cosa è successo e cosa può fare l'utente.
+    /// È l'unica traduzione dell'errore verso la UI — il messaggio tecnico del servizio
+    /// (codici HTTP, payload JSON) non arriva mai qui.
+    /// </summary>
+    private static (string Title, string Detail) MessageFor(BackupErrorKind kind) => kind switch
+    {
+        BackupErrorKind.Network => (
+            "Ultimo backup non riuscito: nessuna connessione",
+            "Il backup verrà ritentato appena torna la rete. Puoi anche riprovare subito con \"Fai backup ora\"."),
+        BackupErrorKind.StorageFull => (
+            "Spazio su Google Drive esaurito",
+            "Libera spazio sul tuo account Google, poi riprova: finché è pieno non è possibile salvare nuovi backup."),
+        BackupErrorKind.ReauthRequired => (
+            "L'accesso a Google è scaduto",
+            "I backup automatici sono fermi. Riconnetti l'account per riprendere: le carte e i backup già salvati restano dove sono."),
+        BackupErrorKind.Service => (
+            "Google Drive non è al momento disponibile",
+            "Il problema è del servizio, non dei tuoi dati. Riprova più tardi."),
+        BackupErrorKind.Local => (
+            "Non è stato possibile preparare i dati da salvare",
+            "Riprova; se il problema si ripete, riavvia l'app."),
+        _ => (string.Empty, string.Empty),
+    };
+
+    /// <summary>Le stesse parole del banner, compattate per l'alert dell'azione appena richiesta.</summary>
+    private static string AlertTextFor(BackupErrorKind kind)
+    {
+        var (title, detail) = MessageFor(kind);
+        return title.Length == 0 ? "Operazione non riuscita." : $"{title}.\n\n{detail}";
+    }
 
     private static string FormatBytes(long bytes)
     {
@@ -321,3 +405,16 @@ public sealed class BackupViewModel : ObservableObject
 
 /// <summary>Elemento della lista di ripristino (backup mostrato in-app).</summary>
 public sealed record BackupListItem(string Id, string DateText, string SizeText);
+
+/// <summary>Stato di salute del backup, derivato dall'esito dell'ultimo tentativo.</summary>
+public enum BackupHealth
+{
+    /// <summary>Ultimo tentativo riuscito (o nessun tentativo): nessun problema da segnalare.</summary>
+    Ok,
+
+    /// <summary>Ultimo tentativo fallito per un motivo recuperabile senza riautenticarsi.</summary>
+    Failed,
+
+    /// <summary>Credenziali non più valide: serve riconnettere l'account Google.</summary>
+    ReauthRequired,
+}

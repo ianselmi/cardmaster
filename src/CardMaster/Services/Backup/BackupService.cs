@@ -47,6 +47,10 @@ public sealed class BackupService : IBackupService
 
     public long? LastBackupSize => _settings.LastBackupSize;
 
+    public BackupErrorKind LastError => _settings.LastBackupError;
+
+    public DateTimeOffset? LastAttemptUtc => _settings.LastBackupAttemptUtc;
+
     public StorageQuota? CachedQuota =>
         _settings.DriveQuotaUsage is { } usage
             ? new StorageQuota(_settings.DriveQuotaLimit, usage)
@@ -79,8 +83,25 @@ public sealed class BackupService : IBackupService
         _settings.BackupFrequency = BackupFrequency.Never;
         _settings.LastBackupUtc = null;
         _settings.LastBackupSize = null;
+        _settings.LastBackupAttemptUtc = null;
+        _settings.LastBackupError = BackupErrorKind.None;
         _settings.DriveQuotaLimit = null;
         _settings.DriveQuotaUsage = null;
+    }
+
+    public async Task<bool> ReconnectAsync(CancellationToken cancellationToken = default)
+    {
+        // Solo SignInAsync: il flusso è già prompt=consent + access_type=offline, quindi
+        // sovrascrive il refresh token morto lasciando intatti abilitazione, frequenza,
+        // schedulazione e backup su Drive. Passare da DisableAsync azzererebbe tutto.
+        var ok = await _auth.SignInAsync(cancellationToken).ConfigureAwait(false);
+        if (!ok)
+        {
+            return false;
+        }
+
+        _settings.LastBackupError = BackupErrorKind.None;
+        return true;
     }
 
     public Task SetFrequencyAsync(BackupFrequency frequency)
@@ -108,6 +129,8 @@ public sealed class BackupService : IBackupService
 
             _settings.LastBackupUtc = uploaded.ModifiedTime;
             _settings.LastBackupSize = uploaded.Size;
+            _settings.LastBackupAttemptUtc = DateTimeOffset.UtcNow;
+            _settings.LastBackupError = BackupErrorKind.None;
             await RefreshQuotaAsync(cancellationToken).ConfigureAwait(false);
 
             _notifier.NotifyResult(true);
@@ -115,18 +138,31 @@ public sealed class BackupService : IBackupService
         }
         catch (DriveBackupException ex)
         {
-            _notifier.NotifyResult(false);
-            return new BackupResult(false, ex.Message);
+            return RecordFailure(ex.Kind, ex.Message);
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or UnauthorizedAccessException)
         {
-            _notifier.NotifyResult(false);
-            return new BackupResult(false, ex.Message);
+            // Snapshot o lettura del file locale: il problema è sul device, non su Drive.
+            return RecordFailure(BackupErrorKind.Local, ex.Message);
         }
         finally
         {
             TryDelete(snapshotPath);
         }
+    }
+
+    /// <summary>
+    /// Registra un tentativo fallito. È l'unico punto in cui lo stato di errore viene scritto per
+    /// i backup, quindi vale identico per manuale, "a ogni apertura" e schedulato in background.
+    /// <see cref="ISettingsStore.LastBackupUtc"/> resta all'ultimo successo: è la coppia
+    /// "ultimo backup riuscito" + "ultimo tentativo fallito" a smentire l'idea che tutto funzioni.
+    /// </summary>
+    private BackupResult RecordFailure(BackupErrorKind kind, string? message)
+    {
+        _settings.LastBackupAttemptUtc = DateTimeOffset.UtcNow;
+        _settings.LastBackupError = kind;
+        _notifier.NotifyResult(false);
+        return new BackupResult(false, message, Kind: kind);
     }
 
     public async Task RunScheduledBackupAsync(CancellationToken cancellationToken = default)
@@ -167,7 +203,7 @@ public sealed class BackupService : IBackupService
         }
         catch (DriveBackupException ex)
         {
-            return new RestoreResult(RestoreOutcome.Failed, ex.Message);
+            return RestoreFailure(ex);
         }
 
         var target = files.FirstOrDefault(f => f.Id == backupId);
@@ -191,7 +227,7 @@ public sealed class BackupService : IBackupService
         catch (DriveBackupException ex)
         {
             TryDelete(downloadPath);
-            return new RestoreResult(RestoreOutcome.Failed, ex.Message);
+            return RestoreFailure(ex);
         }
 
         // Snapshot di sicurezza del DB corrente prima di sostituirlo (per undo immediato).
@@ -204,7 +240,7 @@ public sealed class BackupService : IBackupService
         {
             TryDelete(downloadPath);
             TryDelete(safetyPath);
-            return new RestoreResult(RestoreOutcome.Failed, ex.Message);
+            return new RestoreResult(RestoreOutcome.Failed, ex.Message, BackupErrorKind.Local);
         }
 
         try
@@ -224,7 +260,7 @@ public sealed class BackupService : IBackupService
             }
 
             TryDelete(downloadPath);
-            return new RestoreResult(RestoreOutcome.Failed, ex.Message);
+            return new RestoreResult(RestoreOutcome.Failed, ex.Message, BackupErrorKind.Local);
         }
 
         // Conserva lo snapshot di sicurezza per un eventuale undo esplicito dell'utente.
@@ -268,10 +304,33 @@ public sealed class BackupService : IBackupService
 
             return quota;
         }
-        catch (DriveBackupException)
+        catch (DriveBackupException ex)
         {
+            // Un token revocato emerge già qui, all'apertura della pagina, senza attendere il
+            // prossimo backup. Le altre categorie restano ignorate: una quota non aggiornata per
+            // mancanza di rete non è un guasto del backup. LastBackupAttemptUtc non si tocca:
+            // questa non è l'esecuzione di un backup.
+            if (ex.Kind == BackupErrorKind.ReauthRequired)
+            {
+                _settings.LastBackupError = BackupErrorKind.ReauthRequired;
+            }
+
             return CachedQuota;
         }
+    }
+
+    /// <summary>
+    /// Un ripristino fallito non è un backup fallito: non tocca l'esito dell'ultimo tentativo.
+    /// Fa eccezione il caso credenziali, che riguarda l'account e non la singola operazione.
+    /// </summary>
+    private RestoreResult RestoreFailure(DriveBackupException ex)
+    {
+        if (ex.Kind == BackupErrorKind.ReauthRequired)
+        {
+            _settings.LastBackupError = BackupErrorKind.ReauthRequired;
+        }
+
+        return new RestoreResult(RestoreOutcome.Failed, ex.Message, ex.Kind);
     }
 
     private async Task ApplyRetentionAsync(CancellationToken cancellationToken)

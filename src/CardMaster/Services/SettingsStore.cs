@@ -15,6 +15,8 @@ public sealed class SettingsStore : ISettingsStore
     private const string BackupFrequencyKey = "backup_frequency";
     private const string LastBackupUtcKey = "backup_last_utc";
     private const string LastBackupSizeKey = "backup_last_size";
+    private const string LastBackupAttemptUtcKey = "backup_last_attempt_utc";
+    private const string LastBackupErrorKey = "backup_last_error";
     private const string DriveQuotaLimitKey = "backup_quota_limit";
     private const string DriveQuotaUsageKey = "backup_quota_usage";
     private const string LastUpdateCheckUtcKey = "update_last_check_utc";
@@ -76,6 +78,37 @@ public sealed class SettingsStore : ISettingsStore
     {
         get => GetNullableLong(LastBackupSizeKey);
         set => SetNullableLong(LastBackupSizeKey, value);
+    }
+
+    public DateTimeOffset? LastBackupAttemptUtc
+    {
+        get
+        {
+            var ticks = Preferences.Default.Get(LastBackupAttemptUtcKey, 0L);
+            return ticks == 0L ? null : new DateTimeOffset(ticks, TimeSpan.Zero);
+        }
+        set
+        {
+            if (value is null)
+            {
+                Preferences.Default.Remove(LastBackupAttemptUtcKey);
+            }
+            else
+            {
+                Preferences.Default.Set(LastBackupAttemptUtcKey, value.Value.UtcTicks);
+            }
+        }
+    }
+
+    public BackupErrorKind LastBackupError
+    {
+        get
+        {
+            // Chiave assente (installazioni precedenti a questa change) = nessun errore noto.
+            var raw = Preferences.Default.Get(LastBackupErrorKey, nameof(BackupErrorKind.None));
+            return Enum.TryParse<BackupErrorKind>(raw, out var value) ? value : BackupErrorKind.None;
+        }
+        set => Preferences.Default.Set(LastBackupErrorKey, value.ToString());
     }
 
     public long? DriveQuotaLimit

@@ -18,6 +18,12 @@ public interface IBackupService
 
     long? LastBackupSize { get; }
 
+    /// <summary>Categoria dell'errore dell'ultimo tentativo di backup; None se è andato a buon fine.</summary>
+    BackupErrorKind LastError { get; }
+
+    /// <summary>Quando è avvenuto l'ultimo tentativo di backup, riuscito o fallito; null se mai tentato.</summary>
+    DateTimeOffset? LastAttemptUtc { get; }
+
     /// <summary>Quota cache locale (per la UI offline); null se mai letta.</summary>
     StorageQuota? CachedQuota { get; }
 
@@ -26,6 +32,12 @@ public interface IBackupService
 
     /// <summary>Disabilita il backup: revoca credenziali e annulla la schedulazione.</summary>
     Task DisableAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ripete il consenso Google dopo credenziali scadute/revocate, mantenendo abilitazione,
+    /// frequenza e backup già presenti su Drive. False se l'utente annulla o manca la rete.
+    /// </summary>
+    Task<bool> ReconnectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Imposta la frequenza e ri-pianifica coerentemente.</summary>
     Task SetFrequencyAsync(BackupFrequency frequency);

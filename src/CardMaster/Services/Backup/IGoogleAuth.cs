@@ -24,8 +24,29 @@ public interface IGoogleAuth
     Task SignOutAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Restituisce un access token valido, rinnovandolo se necessario. Null se non c'è un
-    /// account collegato, le credenziali sono state revocate o la rete non è disponibile.
+    /// Restituisce un access token valido, rinnovandolo se necessario. In caso di fallimento
+    /// il motivo è nel <see cref="AccessTokenResult.Failure"/>: distinguere "rete assente" da
+    /// "credenziali rifiutate" è ciò che evita di chiedere una riconnessione quando manca
+    /// soltanto il campo.
     /// </summary>
-    Task<string?> GetValidAccessTokenAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
+    Task<AccessTokenResult> GetValidAccessTokenAsync(bool forceRefresh = false, CancellationToken cancellationToken = default);
 }
+
+/// <summary>Motivo per cui non è stato possibile ottenere un access token valido.</summary>
+public enum TokenFailure
+{
+    /// <summary>Nessun fallimento: il token è valido.</summary>
+    None,
+
+    /// <summary>Nessun account collegato (nessun refresh token salvato).</summary>
+    NoAccount,
+
+    /// <summary>Refresh token rifiutato da Google (scaduto o revocato): serve riconnettersi.</summary>
+    Rejected,
+
+    /// <summary>Errore di trasporto: rete assente o endpoint non raggiungibile. Recuperabile.</summary>
+    Network,
+}
+
+/// <summary>Access token con l'esito del tentativo di ottenerlo. <c>Token</c> null se <c>Failure</c> non è <see cref="TokenFailure.None"/>.</summary>
+public sealed record AccessTokenResult(string? Token, TokenFailure Failure);

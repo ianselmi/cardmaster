@@ -13,6 +13,15 @@ public partial class SettingsPage : ContentPage
         BindingContext = _viewModel;
     }
 
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+
+        // Al ritorno dalla pagina Backup lo stato può essere cambiato (abilitato, disabilitato,
+        // riconnesso, o un backup appena riuscito che ha spento il segnale di problema).
+        _viewModel.RefreshBackupState();
+    }
+
     private async void OnBackupClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("BackupPage");

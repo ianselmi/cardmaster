@@ -62,7 +62,7 @@ public sealed class GoogleAuth : IGoogleAuth
                 return false;
             }
 
-            var token = await ExchangeCodeAsync(code, verifier, cancellationToken).ConfigureAwait(false);
+            var (token, _) = await ExchangeCodeAsync(code, verifier, cancellationToken).ConfigureAwait(false);
             if (token?.AccessToken is null || string.IsNullOrEmpty(token.RefreshToken))
             {
                 return false;
@@ -114,11 +114,11 @@ public sealed class GoogleAuth : IGoogleAuth
         }
     }
 
-    public async Task<string?> GetValidAccessTokenAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
+    public async Task<AccessTokenResult> GetValidAccessTokenAsync(bool forceRefresh = false, CancellationToken cancellationToken = default)
     {
         if (!forceRefresh && IsAccessTokenFresh())
         {
-            return _accessToken;
+            return Valid();
         }
 
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -126,19 +126,20 @@ public sealed class GoogleAuth : IGoogleAuth
         {
             if (!forceRefresh && IsAccessTokenFresh())
             {
-                return _accessToken;
+                return Valid();
             }
 
             var refresh = await SecureStorage.Default.GetAsync(RefreshTokenKey).ConfigureAwait(false);
             if (string.IsNullOrEmpty(refresh))
             {
-                return null;
+                return new AccessTokenResult(null, TokenFailure.NoAccount);
             }
 
-            var token = await RefreshAsync(refresh, cancellationToken).ConfigureAwait(false);
+            var (token, failure) = await RefreshAsync(refresh, cancellationToken).ConfigureAwait(false);
             if (token?.AccessToken is null)
             {
-                return null;
+                // Una risposta 2xx illeggibile è comunque un rifiuto: senza token non si procede.
+                return new AccessTokenResult(null, failure == TokenFailure.None ? TokenFailure.Rejected : failure);
             }
 
             CacheAccessToken(token);
@@ -147,17 +148,15 @@ public sealed class GoogleAuth : IGoogleAuth
                 await SecureStorage.Default.SetAsync(RefreshTokenKey, token.RefreshToken).ConfigureAwait(false);
             }
 
-            return _accessToken;
-        }
-        catch (HttpRequestException)
-        {
-            return null;
+            return Valid();
         }
         finally
         {
             _gate.Release();
         }
     }
+
+    private AccessTokenResult Valid() => new(_accessToken, TokenFailure.None);
 
     private bool IsAccessTokenFresh() =>
         _accessToken is not null && DateTimeOffset.UtcNow < _accessTokenExpiry - TimeSpan.FromMinutes(1);
@@ -168,7 +167,7 @@ public sealed class GoogleAuth : IGoogleAuth
         _accessTokenExpiry = DateTimeOffset.UtcNow.AddSeconds(token.ExpiresIn);
     }
 
-    private async Task<TokenResponse?> ExchangeCodeAsync(string code, string verifier, CancellationToken cancellationToken)
+    private async Task<(TokenResponse? Token, TokenFailure Failure)> ExchangeCodeAsync(string code, string verifier, CancellationToken cancellationToken)
     {
         using var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -182,7 +181,7 @@ public sealed class GoogleAuth : IGoogleAuth
         return await PostTokenAsync(content, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<TokenResponse?> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
+    private async Task<(TokenResponse? Token, TokenFailure Failure)> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
     {
         using var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -194,17 +193,36 @@ public sealed class GoogleAuth : IGoogleAuth
         return await PostTokenAsync(content, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<TokenResponse?> PostTokenAsync(HttpContent content, CancellationToken cancellationToken)
+    /// <summary>
+    /// Chiama il token endpoint distinguendo il rifiuto del server (4xx, tipicamente
+    /// <c>invalid_grant</c> su refresh token revocato: definitivo, serve riconnettersi) da un
+    /// errore di trasporto o 5xx (transitorio: è solo la rete, non le credenziali).
+    /// </summary>
+    private async Task<(TokenResponse? Token, TokenFailure Failure)> PostTokenAsync(HttpContent content, CancellationToken cancellationToken)
     {
-        using var response = await _http.PostAsync(GoogleOAuthConfig.TokenEndpoint, content, cancellationToken)
-            .ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            return null;
-        }
+            using var response = await _http.PostAsync(GoogleOAuthConfig.TokenEndpoint, content, cancellationToken)
+                .ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return (null, (int)response.StatusCode is >= 400 and < 500
+                    ? TokenFailure.Rejected
+                    : TokenFailure.Network);
+            }
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        return JsonSerializer.Deserialize(json, BackupJsonContext.Default.TokenResponse);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var token = JsonSerializer.Deserialize(json, BackupJsonContext.Default.TokenResponse);
+            return token is null ? (null, TokenFailure.Rejected) : (token, TokenFailure.None);
+        }
+        catch (HttpRequestException)
+        {
+            return (null, TokenFailure.Network);
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return (null, TokenFailure.Network);
+        }
     }
 
     private static string CreateCodeVerifier()

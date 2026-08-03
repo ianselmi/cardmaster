@@ -34,6 +34,8 @@ public sealed class DriveBackupClient : IDriveBackupClient
             cancellationToken).ConfigureAwait(false);
 
         // Lo scope appdata potrebbe non bastare per la quota: in tal caso degradiamo senza quota.
+        // Deve restare PRIMA di EnsureSuccessAsync: qui un 403 significa "quota non leggibile",
+        // non "spazio esaurito", e non deve diventare un errore StorageFull.
         if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
         {
             return null;
@@ -172,22 +174,28 @@ public sealed class DriveBackupClient : IDriveBackupClient
         HttpCompletionOption completion,
         CancellationToken cancellationToken)
     {
-        var token = await _auth.GetValidAccessTokenAsync(false, cancellationToken).ConfigureAwait(false)
-                    ?? throw new DriveBackupException("Nessun account Google collegato.") { RequiresReauth = true };
+        var token = await _auth.GetValidAccessTokenAsync(false, cancellationToken).ConfigureAwait(false);
+        if (token.Token is null)
+        {
+            throw ForTokenFailure(token.Failure);
+        }
 
         HttpResponseMessage response;
         try
         {
-            using var first = build(token);
+            using var first = build(token.Token);
             response = await _http.SendAsync(first, completion, cancellationToken).ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
-            throw new DriveBackupException("Operazione Drive non riuscita per un errore di rete.", ex);
+            throw new DriveBackupException("Operazione Drive non riuscita per un errore di rete.", ex)
+            {
+                Kind = BackupErrorKind.Network,
+            };
         }
         catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new DriveBackupException("Operazione Drive scaduta.", ex);
+            throw new DriveBackupException("Operazione Drive scaduta.", ex) { Kind = BackupErrorKind.Network };
         }
 
         if (response.StatusCode != HttpStatusCode.Unauthorized)
@@ -197,27 +205,56 @@ public sealed class DriveBackupClient : IDriveBackupClient
 
         // 401: rinnova il token e ritenta una volta sola.
         response.Dispose();
-        var refreshed = await _auth.GetValidAccessTokenAsync(true, cancellationToken).ConfigureAwait(false)
-                        ?? throw new DriveBackupException("Credenziali Google scadute o revocate.") { RequiresReauth = true };
+        var refreshed = await _auth.GetValidAccessTokenAsync(true, cancellationToken).ConfigureAwait(false);
+        if (refreshed.Token is null)
+        {
+            throw ForTokenFailure(refreshed.Failure);
+        }
 
         try
         {
-            using var retry = build(refreshed);
+            using var retry = build(refreshed.Token);
             response = await _http.SendAsync(retry, completion, cancellationToken).ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
-            throw new DriveBackupException("Operazione Drive non riuscita per un errore di rete.", ex);
+            throw new DriveBackupException("Operazione Drive non riuscita per un errore di rete.", ex)
+            {
+                Kind = BackupErrorKind.Network,
+            };
         }
 
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
             response.Dispose();
-            throw new DriveBackupException("Credenziali Google scadute o revocate.") { RequiresReauth = true };
+            throw new DriveBackupException("Credenziali Google scadute o revocate.")
+            {
+                Kind = BackupErrorKind.ReauthRequired,
+            };
         }
 
         return response;
     }
+
+    /// <summary>
+    /// Traduce l'impossibilità di ottenere un token: solo un rifiuto di Google (o l'assenza di
+    /// account) richiede una riconnessione — se manca la rete il token è ancora buono.
+    /// </summary>
+    private static DriveBackupException ForTokenFailure(TokenFailure failure) => failure switch
+    {
+        TokenFailure.Network => new DriveBackupException("Operazione Drive non riuscita per un errore di rete.")
+        {
+            Kind = BackupErrorKind.Network,
+        },
+        TokenFailure.NoAccount => new DriveBackupException("Nessun account Google collegato.")
+        {
+            Kind = BackupErrorKind.ReauthRequired,
+        },
+        _ => new DriveBackupException("Credenziali Google scadute o revocate.")
+        {
+            Kind = BackupErrorKind.ReauthRequired,
+        },
+    };
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
@@ -227,7 +264,38 @@ public sealed class DriveBackupClient : IDriveBackupClient
         }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        throw new DriveBackupException($"Drive ha risposto {(int)response.StatusCode}: {Truncate(body)}");
+
+        // Il testo con status e corpo resta come dettaglio diagnostico: alla UI arriva Kind.
+        throw new DriveBackupException($"Drive ha risposto {(int)response.StatusCode}: {Truncate(body)}")
+        {
+            Kind = Classify(response.StatusCode, body),
+        };
+    }
+
+    /// <summary>
+    /// Categoria dell'errore a partire da status e corpo. Un 403 è ambiguo: solo il campo
+    /// <c>reason</c> distingue lo spazio Drive esaurito da un rate limit; qualunque valore non
+    /// riconosciuto ricade su <see cref="BackupErrorKind.Service"/>, che non colpevolizza l'utente.
+    /// </summary>
+    private static BackupErrorKind Classify(HttpStatusCode status, string body) => status switch
+    {
+        HttpStatusCode.Unauthorized => BackupErrorKind.ReauthRequired,
+        HttpStatusCode.Forbidden when ReasonOf(body) == "storageQuotaExceeded" => BackupErrorKind.StorageFull,
+        _ => BackupErrorKind.Service,
+    };
+
+    /// <summary>Primo <c>reason</c> del payload d'errore Google; null se il corpo non è quel JSON.</summary>
+    private static string? ReasonOf(string body)
+    {
+        try
+        {
+            var error = JsonSerializer.Deserialize(body, BackupJsonContext.Default.ErrorResponse);
+            return error?.Error?.Errors?.FirstOrDefault(e => !string.IsNullOrEmpty(e.Reason))?.Reason;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static string Truncate(string text) =>

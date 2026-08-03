@@ -53,7 +53,7 @@ Il sistema SHALL permettere all'utente di scegliere l'aspetto tra **Sistema**, *
 
 ### Requirement: Sezione Backup su Google Drive nelle Impostazioni
 
-Il sistema SHALL fornire, all'interno delle Impostazioni, una **sezione dedicata al backup su Google Drive**, raggiungibile dalla pagina Impostazioni. La sezione SHALL esporre lo stato del backup (abilitato/disabilitato e account collegato), le informazioni di stato (data/dimensione dell'ultimo backup, spazio disponibile su Drive, frequenza) e le azioni di **abilita/disabilita**, **"Fai backup ora"**, **"Ripristina da un backup…"** e scelta della **frequenza**. Il comportamento di dettaglio di queste operazioni è definito nella capability `cloud-backup`. Il pulsante che apre la sezione dalla pagina Impostazioni SHALL segnalare visivamente, senza dover entrare nella sezione, se il backup è attualmente attivo o no (es. sottotitolo di stato e/o stile del pulsante diverso), riflettendo lo stato corrente della preferenza di abilitazione.
+Il sistema SHALL fornire, all'interno delle Impostazioni, una **sezione dedicata al backup su Google Drive**, raggiungibile dalla pagina Impostazioni. La sezione SHALL esporre lo stato del backup (abilitato/disabilitato e account collegato), le informazioni di stato (esito dell'ultimo tentativo, data/dimensione dell'ultimo backup riuscito, spazio disponibile su Drive, frequenza) e le azioni di **abilita/disabilita**, **"Fai backup ora"**, **"Ripristina da un backup…"** e scelta della **frequenza**. Il comportamento di dettaglio di queste operazioni è definito nella capability `cloud-backup`. Il pulsante che apre la sezione dalla pagina Impostazioni SHALL segnalare visivamente, senza dover entrare nella sezione, se il backup è attualmente attivo o no (es. sottotitolo di stato e/o stile del pulsante diverso), riflettendo lo stato corrente della preferenza di abilitazione. Il pulsante SHALL inoltre distinguere il caso di backup **attivo ma non funzionante** (ultimo tentativo fallito o riconnessione necessaria) da quello di backup attivo e funzionante, così che il problema sia percepibile dalla pagina Impostazioni.
 
 #### Scenario: Apertura della sezione backup
 
@@ -84,6 +84,16 @@ Il sistema SHALL fornire, all'interno delle Impostazioni, una **sezione dedicata
 
 - **WHEN** l'utente abilita o disabilita il backup dalla sezione dedicata e torna alla pagina Impostazioni
 - **THEN** il pulsante "Backup su Google Drive" mostra il segnale di stato coerente con la nuova preferenza
+
+#### Scenario: Segnale di backup non funzionante
+
+- **WHEN** l'utente apre la pagina Impostazioni con il backup abilitato ma l'ultimo tentativo fallito o in stato di riconnessione necessaria
+- **THEN** il pulsante "Backup su Google Drive" segnala il problema in modo distinguibile dallo stato attivo e funzionante
+
+#### Scenario: Il segnale di problema sparisce dopo un backup riuscito
+
+- **WHEN** dopo un fallimento l'utente esegue un backup riuscito e torna alla pagina Impostazioni
+- **THEN** il pulsante "Backup su Google Drive" torna a mostrare il segnale di stato attivo e funzionante
 
 ### Requirement: Sezione Controllo aggiornamenti nelle Impostazioni
 

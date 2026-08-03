@@ -32,7 +32,7 @@
                 <Button
                     Text="Backup su Google Drive"
                     Clicked="OnBackupClicked"
-                    BackgroundColor="{Binding IsBackupEnabled, Converter={StaticResource BackupStatusToColor}}" />
+                    BackgroundColor="{Binding BackupState, Converter={StaticResource BackupStatusToColor}}" />
                 <Label Text="{Binding BackupStatusText}" Style="{StaticResource CaptionLabel}" />
             </VerticalStackLayout>
 
