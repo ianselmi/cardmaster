@@ -20,6 +20,10 @@ Le feature si propongono e implementano con OpenSpec (slash command `/opsx:propo
 
 Il repository è **pubblico** (decisione 25 lug 2026, vedi `PLAN.md`): **rivedere sempre il diff prima di committare o pushare**, per escludere segreti o dati sensibili (chiavi, token, credenziali, percorsi/dati personali). Il keystore di firma e le credenziali CI restano *solo* come secret GitHub Actions, mai nel repository.
 
-## Build
+## Build e test
 
 `dotnet build` deve completare senza errori — criterio di accettazione per ogni change (vedi `PLAN.md`).
+
+`dotnet test` esegue i test in `tests/CardMaster.Tests`. Coprono la logica **pura** del dominio scontrini (estrazione della testata e ricostruzione delle righe dalla geometria dell'OCR), che è dove si annidano gli errori silenziosi: un totale letto dalla riga sbagliata o una data spostata di un giorno non fanno crashare nulla.
+
+Il progetto di test **compila i sorgenti dell'app tramite `<Compile Include>`**, non ne tiene una copia: l'app è `net10.0-android` e non è referenziabile da un progetto che gira su desktop. Funziona solo perché quelle classi non dipendono da MAUI, da ML Kit o dal database. Se servisse testare codice che tocca la piattaforma, la strada è estrarre un progetto di libreria condiviso — non allungare la lista dei file collegati.
