@@ -31,4 +31,20 @@ public partial class SettingsPage : ContentPage
     {
         await Shell.Current.GoToAsync("UpdatePage");
     }
+
+    private async void OnClearReceiptImagesClicked(object? sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlertAsync(
+            "Eliminare le immagini?",
+            "Gli scontrini restano, con i dati e il testo riconosciuto: si perde solo la foto originale.",
+            "Elimina",
+            "Annulla");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await _viewModel.ClearReceiptImagesAsync();
+    }
 }

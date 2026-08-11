@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.ReceiptFormPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Controlla i dati">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
+
+            <Label
+                IsVisible="{Binding HasNotRecognized}"
+                Text="{Binding NotRecognizedMessage}"
+                Style="{StaticResource CaptionLabel}" />
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Esercente" Style="{StaticResource CaptionLabel}" />
+                <Entry Text="{Binding MerchantName}" Placeholder="Nome del negozio" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Partita IVA" Style="{StaticResource CaptionLabel}" />
+                <Entry Text="{Binding MerchantVatId}" Keyboard="Numeric" Placeholder="11 cifre" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Data dell'acquisto" Style="{StaticResource CaptionLabel}" />
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                    <CheckBox Grid.Column="0" IsChecked="{Binding HasDate}" />
+                    <DatePicker Grid.Column="1" Date="{Binding PurchaseDate}" IsEnabled="{Binding HasDate}" />
+                </Grid>
+                <Label
+                    Text="Senza data lo scontrino resta salvato ma non entra nei totali di spesa."
+                    Style="{StaticResource CaptionLabel}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Totale" Style="{StaticResource CaptionLabel}" />
+                <Entry Text="{Binding TotalText}" Keyboard="Numeric" Placeholder="12,34" />
+            </VerticalStackLayout>
+
+            <Button Text="Salva" Clicked="OnSaveClicked" Margin="0,12,0,0" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

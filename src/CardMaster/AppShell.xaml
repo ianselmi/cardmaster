@@ -9,9 +9,19 @@
     Shell.TitleColor="{DynamicResource White}"
     Title="CardMaster">
 
-    <ShellContent
-        Title="Le mie carte"
-        ContentTemplate="{DataTemplate views:CardListPage}"
-        Route="CardListPage" />
+    <!-- TabBar e non due ShellContent nudi: con quelli Shell costruisce un menu a panino
+         (flyout), che nasconde la sezione dietro un gesto. Le due funzioni sono pari-grado e
+         vanno dove un utente Android le cerca, cioè nella barra in basso. -->
+    <TabBar>
+        <ShellContent
+            Title="Le mie carte"
+            ContentTemplate="{DataTemplate views:CardListPage}"
+            Route="CardListPage" />
+
+        <ShellContent
+            Title="Scontrini"
+            ContentTemplate="{DataTemplate views:ReceiptsPage}"
+            Route="ReceiptsPage" />
+    </TabBar>
 
 </Shell>

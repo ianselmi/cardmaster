@@ -73,6 +73,11 @@
 
 	<ItemGroup>
 		<PackageReference Include="BarcodeScanning.Native.Maui" Version="3.0.6" />
+		<!-- OCR scontrini: ML Kit Text Recognition con modello INCLUSO nell'APK (com.google.mlkit),
+		     non la variante play-services che lo scarica al primo uso: serve il riconoscimento
+		     funzionante al primo avvio senza rete e senza dipendere dai Play Services del device
+		     (distribuzione fuori dal Play Store). Prezzo: qualche MB di APK. -->
+		<PackageReference Include="Xamarin.Google.MLKit.TextRecognition" Version="116.0.1.8" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.90" />
 		<!-- Backup su Google Drive: schedulazione periodica in background -->
 		<PackageReference Include="Xamarin.AndroidX.Work.Runtime" Version="2.11.2.1" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />

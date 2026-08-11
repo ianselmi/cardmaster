@@ -16,7 +16,11 @@ public sealed class DatabaseService : IDatabaseService
     // aggiunge CreateTableAsync<Card>() sulle installazioni esistenti (ALTER TABLE ADD COLUMN,
     // valori NULL = comportamento precedente): l'incremento serve alla guardia del backup Drive
     // (BackupNaming.CanRestore), perché un backup -v2 non sia ripristinato da un'app più vecchia.
-    private const int SchemaVersion = 2;
+    //
+    // v3 (change receipt-capture): tabella Receipt. La crea CreateTableAsync<Receipt>() sulle
+    // installazioni esistenti; l'incremento serve, come sopra, solo alla guardia del ripristino:
+    // un backup -v3 contiene scontrini che un'app più vecchia non saprebbe mostrare.
+    private const int SchemaVersion = 3;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private SQLiteAsyncConnection? _connection;
@@ -46,6 +50,7 @@ public sealed class DatabaseService : IDatabaseService
                 storeDateTimeAsTicks: true);
 
             await connection.CreateTableAsync<Card>().ConfigureAwait(false);
+            await connection.CreateTableAsync<Receipt>().ConfigureAwait(false);
             await ApplySchemaVersionAsync(connection).ConfigureAwait(false);
 
             _connection = connection;

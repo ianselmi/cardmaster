@@ -64,4 +64,10 @@ public interface ISettingsStore
 
     /// <summary>Versione remota per cui l'utente ha già chiuso il segnale di aggiornamento; null se nessuna.</summary>
     string? UpdateNotifyDismissedVersion { get; set; }
+
+    /// <summary>
+    /// Conservare l'immagine degli scontrini acquisiti. Default true: l'immagine serve a
+    /// verificare una cifra dubbia. Disattivandola si salvano solo dati e testo riconosciuto.
+    /// </summary>
+    bool KeepReceiptImages { get; set; }
 }

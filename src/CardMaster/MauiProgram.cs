@@ -1,6 +1,7 @@
 using BarcodeScanning;
 using CardMaster.Services;
 using CardMaster.Services.Backup;
+using CardMaster.Services.Receipts;
 using CardMaster.Services.Update;
 using CardMaster.ViewModels;
 using CardMaster.Views;
@@ -47,6 +48,7 @@ public static class MauiProgram
 		services.AddSingleton<IUpdateDownloadLauncher, Platforms.Android.Services.AndroidUpdateDownloadLauncher>();
 		services.AddSingleton<IUpdateCheckScheduler, Platforms.Android.Services.AndroidUpdateCheckScheduler>();
 		services.AddSingleton<IApkInstaller, Platforms.Android.Services.AndroidApkInstaller>();
+		services.AddSingleton<IReceiptOcr, Platforms.Android.Services.MlKitReceiptOcr>();
 #else
 		services.AddSingleton<IBackupScheduler, NoopBackupScheduler>();
 		services.AddSingleton<IBackupNotifier, NoopBackupNotifier>();
@@ -54,10 +56,12 @@ public static class MauiProgram
 		services.AddSingleton<IUpdateDownloadLauncher, NoopUpdateDownloadLauncher>();
 		services.AddSingleton<IUpdateCheckScheduler, NoopUpdateCheckScheduler>();
 		services.AddSingleton<IApkInstaller, NoopApkInstaller>();
+		services.AddSingleton<IReceiptOcr, NoopReceiptOcr>();
 #endif
 		// Storage locale SQLite (in chiaro, v1).
 		services.AddSingleton<IDatabaseService, DatabaseService>();
 		services.AddSingleton<ICardRepository, CardRepository>();
+		services.AddSingleton<IReceiptRepository, ReceiptRepository>();
 
 		// Catalogo emittenti: seed statico bundle, read-only, offline.
 		services.AddSingleton<IIssuerCatalog, IssuerCatalog>();
@@ -108,6 +112,15 @@ public static class MauiProgram
 		// Backup su Google Drive: pagina e VM transient.
 		services.AddTransient<BackupPage>();
 		services.AddTransient<BackupViewModel>();
+
+		// Scontrini: OCR on-device, storage delle immagini, storico e conferma dei dati.
+		services.AddSingleton<IReceiptImageStore, ReceiptImageStore>();
+		services.AddSingleton<ReceiptListViewModel>();
+		services.AddSingleton<ReceiptsPage>();
+		services.AddTransient<ReceiptFormPage>();
+		services.AddTransient<ReceiptFormViewModel>();
+		services.AddTransient<ReceiptDetailPage>();
+		services.AddTransient<ReceiptDetailViewModel>();
 
 		// Controllo aggiornamenti: manifest statico su GitHub Pages (nessuna autenticazione, repo privato).
 		services.AddSingleton<IUpdateService, UpdateService>();
