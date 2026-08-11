@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <!-- Solo per il tipo Rect usato dalla geometria dell'OCR: pacchetto autonomo,
+         non trascina MAUI. -->
+    <PackageReference Include="Microsoft.Maui.Graphics" Version="10.0.90" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Microsoft.Maui.Graphics" />
+  </ItemGroup>
+
+  <!--
+    I sorgenti sotto test sono COMPILATI QUI, non copiati: il progetto dell'app è
+    net10.0-android e non è referenziabile da un progetto di test che gira su desktop.
+    Il collegamento garantisce che i test vedano sempre il codice vero — una copia
+    divergerebbe al primo cambiamento e smetterebbe di proteggere qualcosa.
+
+    Sono collegabili solo perché sono classi PURE: nessuna dipendenza da MAUI (a parte
+    il tipo Rect), da ML Kit o dal database. Se un domani servisse testare codice che
+    tocca la piattaforma, la strada è estrarre un progetto di libreria condiviso, non
+    allungare questa lista.
+  -->
+  <ItemGroup>
+    <Compile Include="../../src/CardMaster/Services/Receipts/IReceiptOcr.cs" Link="SourceUnderTest/IReceiptOcr.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptTextLayout.cs" Link="SourceUnderTest/ReceiptTextLayout.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptHeaderParser.cs" Link="SourceUnderTest/ReceiptHeaderParser.cs" />
+  </ItemGroup>
+
+</Project>
