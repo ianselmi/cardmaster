@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace CardMaster.Services.Receipts;
@@ -13,9 +12,26 @@ public readonly record struct ReceiptHeader(
     string? MerchantName,
     string? MerchantVatId,
     DateTimeOffset? PurchasedAt,
-    long? TotalCents)
+    long? TotalCents,
+    long? TaxCents = null)
 {
     public static ReceiptHeader Empty { get; }
+}
+
+/// <summary>
+/// Riga del totale: importo e <b>posizione</b>. L'indice serve alla ricostruzione delle righe
+/// prodotto, che delimita il corpo dello scontrino appena sopra questa riga invece di indovinare
+/// dove finiscono i prodotti.
+/// </summary>
+/// <param name="Cents">Totale in centesimi, <c>null</c> se non riconosciuto.</param>
+/// <param name="LineIndex">Indice della riga che porta la parola chiave, <c>-1</c> se assente.</param>
+public readonly record struct ReceiptTotalLine(long? Cents, int LineIndex)
+{
+    /// <summary>Nessuna riga di totale riconosciuta.</summary>
+    public static ReceiptTotalLine NotFound { get; } = new(null, -1);
+
+    /// <summary>Vero se la riga del totale è stata individuata.</summary>
+    public bool Found => LineIndex >= 0;
 }
 
 /// <summary>
@@ -38,14 +54,6 @@ public static class ReceiptHeaderParser
 
     /// <summary>Tolleranza sul futuro: copre fusi orari e orologio del device leggermente avanti.</summary>
     private static readonly TimeSpan FutureTolerance = TimeSpan.FromDays(1);
-
-    /// <summary>
-    /// Importo in formato italiano: virgola decimale obbligatoria, punto opzionale come
-    /// separatore delle migliaia. Es. <c>1.234,56</c>, <c>7,90</c>.
-    /// </summary>
-    private static readonly Regex AmountPattern = new(
-        @"(?<!\d)(\d{1,3}(?:\.\d{3})+|\d+),\s?(\d{2})(?!\d)",
-        RegexOptions.Compiled);
 
     /// <summary>
     /// Data con separatori <c>/ - .</c> e spazi tollerati attorno ad essi: l'OCR spezza
@@ -84,8 +92,10 @@ public static class ReceiptHeaderParser
     /// </summary>
     private static readonly string[] TotalExclusions =
     [
-        "SUBTOTALE",
-        "SUB TOTALE",
+        // "SUBTOT" e non "SUBTOTALE": gli scontrini abbreviano ("Subtot 47,74", visto su MD),
+        // e la forma corta copre anche quella lunga.
+        "SUBTOT",
+        "SUB TOT",
         "SCONT",
         "RESTO",
         "NON RISCOSSO",
@@ -145,16 +155,57 @@ public static class ReceiptHeaderParser
             FindMerchantName(lines),
             FindVatId(lines),
             FindPurchasedAt(lines, now ?? DateTimeOffset.Now),
-            FindTotalCents(lines));
+            FindTotalCents(lines),
+            FindTaxCents(lines));
     }
+
+    /// <summary>
+    /// Totale dell'imposta ("di cui IVA"). Non si calcola dal totale quando non è stampato: un
+    /// valore dedotto sarebbe indistinguibile da uno letto, e il confronto con il riepilogo IVA
+    /// perderebbe senso perché entrambi i termini verrebbero dalla stessa fonte.
+    /// </summary>
+    private static long? FindTaxCents(IReadOnlyList<string> lines)
+    {
+        for (var i = lines.Count - 1; i >= 0; i--)
+        {
+            var upper = lines[i].ToUpperInvariant();
+            if (upper.Contains("IMPONIBILE", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!upper.Contains("DI CUI IVA", StringComparison.Ordinal) &&
+                !upper.Contains("TOTALE IVA", StringComparison.Ordinal) &&
+                !upper.Contains("IVA TOTALE", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var amount = LastAmountCents(lines[i]);
+            if (amount is not null)
+            {
+                return amount;
+            }
+        }
+
+        return null;
+    }
+
+    private static long? FindTotalCents(IReadOnlyList<string> lines) => FindTotal(lines).Cents;
 
     /// <summary>
     /// Cerca il totale scorrendo le parole chiave dalla più specifica alla più generica; a
     /// parità di parola vince l'occorrenza <b>più in basso</b>, perché il totale sta in fondo.
     /// Se la riga con la parola chiave non contiene importi, guarda la riga successiva: molti
     /// scontrini mandano a capo la cifra.
+    /// <para>
+    /// Restituisce anche <b>dove</b> ha trovato il totale — cioè la riga con la parola chiave,
+    /// anche quando l'importo sta su quella dopo — perché è lì che finisce il corpo dello
+    /// scontrino. Le regole di riconoscimento sono quelle di sempre: qui è cambiata solo la
+    /// superficie, ed è la ragione per cui i test della testata girano invariati.
+    /// </para>
     /// </summary>
-    private static long? FindTotalCents(List<string> lines)
+    public static ReceiptTotalLine FindTotal(IReadOnlyList<string> lines)
     {
         foreach (var keyword in TotalKeywords)
         {
@@ -174,7 +225,7 @@ public static class ReceiptHeaderParser
                 var amount = LastAmountCents(lines[i]);
                 if (amount is not null)
                 {
-                    return amount;
+                    return new ReceiptTotalLine(amount, i);
                 }
 
                 if (i + 1 < lines.Count)
@@ -182,36 +233,17 @@ public static class ReceiptHeaderParser
                     var next = LastAmountCents(lines[i + 1]);
                     if (next is not null)
                     {
-                        return next;
+                        return new ReceiptTotalLine(next, i);
                     }
                 }
             }
         }
 
-        return null;
+        return ReceiptTotalLine.NotFound;
     }
 
     /// <summary>Ultimo importo della riga (il prezzo sta a destra), in centesimi.</summary>
-    private static long? LastAmountCents(string line)
-    {
-        var matches = AmountPattern.Matches(line);
-        if (matches.Count == 0)
-        {
-            return null;
-        }
-
-        var match = matches[^1];
-        var whole = match.Groups[1].Value.Replace(".", string.Empty, StringComparison.Ordinal);
-        var cents = match.Groups[2].Value;
-
-        if (!long.TryParse(whole, NumberStyles.None, CultureInfo.InvariantCulture, out var units) ||
-            !long.TryParse(cents, NumberStyles.None, CultureInfo.InvariantCulture, out var fraction))
-        {
-            return null;
-        }
-
-        return (units * 100) + fraction;
-    }
+    private static long? LastAmountCents(string line) => ReceiptAmount.LastCents(line);
 
     /// <summary>
     /// Prima data plausibile, con l'ora della stessa riga se presente. Una data sbagliata è

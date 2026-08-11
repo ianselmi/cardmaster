@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CardMaster.Data;
 using CardMaster.Services;
@@ -18,9 +19,13 @@ public sealed class ReceiptFormViewModel : ObservableObject
     private readonly IReceiptRepository _repository;
     private readonly IReceiptImageStore _imageStore;
     private readonly ISettingsStore _settings;
+    private readonly ICategoryCatalog _categories;
+    private readonly IProductMappingRepository _mappings;
 
     private Receipt? _existing;
     private string? _pendingImagePath;
+    private ReceiptVatSummary _vatSummary = ReceiptVatSummary.Empty;
+    private long? _taxCents;
 
     private string _merchantName = string.Empty;
     private string _merchantVatId = string.Empty;
@@ -28,15 +33,48 @@ public sealed class ReceiptFormViewModel : ObservableObject
     private bool _hasDate;
     private string _totalText = string.Empty;
     private string _rawText = string.Empty;
+    private string _balanceMessage = string.Empty;
+    private bool _balanceIsOk;
 
     public ReceiptFormViewModel(
         IReceiptRepository repository,
         IReceiptImageStore imageStore,
-        ISettingsStore settings)
+        ISettingsStore settings,
+        ICategoryCatalog categories,
+        IProductMappingRepository mappings)
     {
         _repository = repository;
         _imageStore = imageStore;
         _settings = settings;
+        _categories = categories;
+        _mappings = mappings;
+
+        Items.CollectionChanged += (_, _) => UpdateBalance();
+    }
+
+    /// <summary>Righe dello scontrino, modificabili una per una.</summary>
+    public ObservableCollection<ReceiptItemViewModel> Items { get; } = [];
+
+    /// <summary>Categorie selezionabili, con la voce vuota per "senza categoria".</summary>
+    public ObservableCollection<string> CategoryNames { get; } = [];
+
+    public bool HasItems => Items.Count > 0;
+
+    /// <summary>
+    /// Esito della quadratura, in cima alla pagina. Se il totale torna l'utente conferma senza
+    /// scorrere le righe: un carrello ha decine di voci, e chiedere di verificarle una per una
+    /// farebbe abbandonare la funzione al terzo scontrino.
+    /// </summary>
+    public string BalanceMessage
+    {
+        get => _balanceMessage;
+        private set => SetProperty(ref _balanceMessage, value);
+    }
+
+    public bool BalanceIsOk
+    {
+        get => _balanceIsOk;
+        private set => SetProperty(ref _balanceIsOk, value);
     }
 
     public string MerchantName
@@ -70,7 +108,13 @@ public sealed class ReceiptFormViewModel : ObservableObject
     public string TotalText
     {
         get => _totalText;
-        set => SetProperty(ref _totalText, value);
+        set
+        {
+            if (SetProperty(ref _totalText, value))
+            {
+                UpdateBalance();
+            }
+        }
     }
 
     public string RawText
@@ -87,10 +131,20 @@ public sealed class ReceiptFormViewModel : ObservableObject
     public bool IsEditingExisting => _existing is not null;
 
     /// <summary>Prepara il form per uno scontrino appena acquisito.</summary>
-    public void InitializeFromCapture(ReceiptHeader header, string rawText, string? imagePath)
+    public void InitializeFromCapture(ReceiptHeader header, string rawText, string? imagePath) =>
+        InitializeFromCapture(header, rawText, imagePath, ReceiptItemsResult.None);
+
+    /// <summary>Prepara il form per uno scontrino appena acquisito, righe comprese.</summary>
+    public void InitializeFromCapture(
+        ReceiptHeader header,
+        string rawText,
+        string? imagePath,
+        ReceiptItemsResult items)
     {
         _existing = null;
         _pendingImagePath = imagePath;
+        _vatSummary = items.VatSummary;
+        _taxCents = header.TaxCents;
         RawText = rawText;
 
         MerchantName = header.MerchantName ?? string.Empty;
@@ -114,7 +168,61 @@ public sealed class ReceiptFormViewModel : ObservableObject
         OnPropertyChanged(nameof(NotRecognizedMessage));
         OnPropertyChanged(nameof(HasNotRecognized));
         OnPropertyChanged(nameof(IsEditingExisting));
+
+        _pendingLines = items.Items;
     }
+
+    /// <summary>Righe appena ricostruite, in attesa di essere classificate e mostrate.</summary>
+    private IReadOnlyList<ReceiptItemLine> _pendingLines = [];
+
+    /// <summary>
+    /// Carica categorie e mappature apprese e popola le righe. Sta fuori dal costruttore perché
+    /// legge dal database e dal bundle: il form deve poter comparire prima che finisca.
+    /// </summary>
+    public async Task LoadCategoriesAsync()
+    {
+        var catalog = await _categories.GetAllAsync().ConfigureAwait(true);
+        var learned = await _mappings.GetLearnedAsync().ConfigureAwait(true);
+
+        if (CategoryNames.Count == 0)
+        {
+            CategoryNames.Add(NoCategory);
+            foreach (var category in catalog)
+            {
+                CategoryNames.Add(category.Name);
+            }
+        }
+
+        // Le righe già salvate portano l'id della categoria: qui diventa il nome che l'utente
+        // vede nel selettore, senza che la rilettura conti come una sua correzione.
+        foreach (var item in Items)
+        {
+            var byId = catalog.FirstOrDefault(c => c.Id == item.Category);
+            if (byId is not null)
+            {
+                item.SetCategoryQuietly(byId.Name);
+            }
+        }
+
+        if (_pendingLines.Count == 0)
+        {
+            UpdateBalance();
+            return;
+        }
+
+        foreach (var line in _pendingLines)
+        {
+            var id = CategoryMatcher.Resolve(line.RawDescription, learned, catalog);
+            var name = catalog.FirstOrDefault(c => c.Id == id)?.Name;
+            Add(ReceiptItemViewModel.FromLine(line, name));
+        }
+
+        _pendingLines = [];
+        UpdateBalance();
+    }
+
+    /// <summary>Voce del selettore per una riga che resta senza categoria.</summary>
+    public const string NoCategory = "— senza categoria —";
 
     /// <summary>Carica uno scontrino esistente per la modifica.</summary>
     public async Task<bool> LoadExistingAsync(string id)
@@ -127,7 +235,14 @@ public sealed class ReceiptFormViewModel : ObservableObject
 
         _existing = receipt;
         _pendingImagePath = null;
+        _taxCents = receipt.TaxCents;
         RawText = receipt.RawText;
+
+        Items.Clear();
+        foreach (var item in await _repository.GetItemsAsync(id).ConfigureAwait(true))
+        {
+            Add(ReceiptItemViewModel.FromEntity(item));
+        }
 
         MerchantName = receipt.MerchantName ?? string.Empty;
         MerchantVatId = receipt.MerchantVatId ?? string.Empty;
@@ -141,7 +256,79 @@ public sealed class ReceiptFormViewModel : ObservableObject
         OnPropertyChanged(nameof(NotRecognizedMessage));
         OnPropertyChanged(nameof(HasNotRecognized));
         OnPropertyChanged(nameof(IsEditingExisting));
+        UpdateBalance();
         return true;
+    }
+
+    /// <summary>Aggiunge una riga che il riconoscimento non ha letto.</summary>
+    public void AddEmptyItem() => Add(ReceiptItemViewModel.Empty());
+
+    /// <summary>Elimina una riga che il riconoscimento ha inventato.</summary>
+    public void RemoveItem(ReceiptItemViewModel item)
+    {
+        item.Changed -= OnItemChanged;
+        Items.Remove(item);
+    }
+
+    private void Add(ReceiptItemViewModel item)
+    {
+        item.Changed += OnItemChanged;
+        Items.Add(item);
+    }
+
+    private void OnItemChanged(object? sender, EventArgs e) => UpdateBalance();
+
+    /// <summary>
+    /// Ricalcola la quadratura a ogni modifica: l'utente deve vedere l'effetto della correzione
+    /// mentre la fa, non dopo aver salvato.
+    /// </summary>
+    private void UpdateBalance()
+    {
+        OnPropertyChanged(nameof(HasItems));
+
+        if (Items.Count == 0)
+        {
+            BalanceIsOk = false;
+            BalanceMessage = "Nessuna riga letta da questo scontrino. Puoi aggiungerle a mano.";
+            return;
+        }
+
+        var lines = Items.Select(i => i.ToLine()).ToList();
+        var balance = ReceiptTotalsCheck.Verify(lines, ParseTotalCents(TotalText), _vatSummary);
+
+        BalanceIsOk = balance.Status == ReceiptBalanceStatus.Balanced &&
+                      balance.RateStatus != ReceiptBalanceStatus.Mismatch;
+
+        BalanceMessage = BuildBalanceMessage(balance);
+    }
+
+    private static string BuildBalanceMessage(ReceiptBalance balance)
+    {
+        var lines = ReceiptListViewModel.FormatCents(balance.LinesTotalCents);
+
+        if (balance.Status == ReceiptBalanceStatus.NotChecked)
+        {
+            return $"Righe per {lines}. Senza totale non c'è niente con cui confrontarle.";
+        }
+
+        if (balance.Status == ReceiptBalanceStatus.Mismatch)
+        {
+            var gap = ReceiptListViewModel.FormatCents(Math.Abs(balance.DifferenceCents));
+            var direction = balance.DifferenceCents > 0 ? "in più" : "in meno";
+            return $"Le righe non tornano con il totale: {lines}, cioè {gap} {direction}. Controlla le righe.";
+        }
+
+        if (balance.RateStatus == ReceiptBalanceStatus.Mismatch)
+        {
+            var rates = string.Join(
+                ", ",
+                balance.UnbalancedRates.Select(r => $"{r.RateBasisPoints / 100m:0.##}%"));
+            return $"Il totale torna ({lines}), ma non l'IVA: controlla le righe al {rates}.";
+        }
+
+        return balance.RateStatus == ReceiptBalanceStatus.Balanced
+            ? $"Le righe tornano con il totale e con l'IVA: {lines}."
+            : $"Le righe tornano con il totale: {lines}.";
     }
 
     /// <summary>
@@ -182,7 +369,9 @@ public sealed class ReceiptFormViewModel : ObservableObject
             _existing.MerchantVatId = Nullify(MerchantVatId);
             _existing.PurchasedAt = purchasedAt;
             _existing.TotalCents = totalCents;
+            _existing.TaxCents = _taxCents;
             await _repository.UpdateAsync(_existing).ConfigureAwait(true);
+            await SaveItemsAsync(_existing.Id).ConfigureAwait(true);
             return;
         }
 
@@ -192,6 +381,7 @@ public sealed class ReceiptFormViewModel : ObservableObject
             MerchantVatId = Nullify(MerchantVatId),
             PurchasedAt = purchasedAt,
             TotalCents = totalCents,
+            TaxCents = _taxCents,
             RawText = RawText,
         };
 
@@ -205,6 +395,40 @@ public sealed class ReceiptFormViewModel : ObservableObject
         }
 
         await _repository.AddAsync(receipt).ConfigureAwait(true);
+        await SaveItemsAsync(receipt.Id).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Salva le righe sostituendole in blocco, e trasforma in mappature apprese le sole
+    /// categorie che l'utente ha <b>cambiato</b>: valgono da qui in avanti, e non riscrivono
+    /// gli scontrini già salvati.
+    /// </summary>
+    private async Task SaveItemsAsync(string receiptId)
+    {
+        var entities = new List<ReceiptItem>();
+        var catalog = await _categories.GetAllAsync().ConfigureAwait(true);
+
+        foreach (var item in Items)
+        {
+            if (string.IsNullOrWhiteSpace(item.Description) && item.AmountCents == 0)
+            {
+                // Riga aggiunta e lasciata vuota: non è un dato, è un ripensamento.
+                continue;
+            }
+
+            var entity = item.ToEntity(receiptId);
+            entity.Category = catalog.FirstOrDefault(c => c.Name == item.Category)?.Id;
+            entities.Add(entity);
+
+            if (item.CategoryChangedByUser && entity.Category is not null)
+            {
+                await _mappings
+                    .SetAsync(entity.NormalizedDescription, entity.Category, ProductMappingOrigin.User)
+                    .ConfigureAwait(true);
+            }
+        }
+
+        await _repository.ReplaceItemsAsync(receiptId, entities).ConfigureAwait(true);
     }
 
     private static string? Nullify(string value) =>

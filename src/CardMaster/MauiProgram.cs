@@ -66,6 +66,10 @@ public static class MauiProgram
 		// Catalogo emittenti: seed statico bundle, read-only, offline.
 		services.AddSingleton<IIssuerCatalog, IssuerCatalog>();
 
+		// Dizionario delle categorie di spesa: stesso modello del catalogo emittenti.
+		services.AddSingleton<ICategoryCatalog, CategoryCatalog>();
+		services.AddSingleton<IProductMappingRepository, ProductMappingRepository>();
+
 		// Preferenze utente (chiave/valore locale su Preferences).
 		services.AddSingleton<ISettingsStore, SettingsStore>();
 

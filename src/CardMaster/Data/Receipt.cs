@@ -3,8 +3,8 @@ using SQLite;
 namespace CardMaster.Data;
 
 /// <summary>
-/// Scontrino acquisito da foto o immagine, locale al device. In questa change (receipt-capture)
-/// contiene i soli dati di <b>testata</b>: le righe dei prodotti arrivano con receipt-items.
+/// Scontrino acquisito da foto o immagine, locale al device. Porta i dati di <b>testata</b>; le
+/// sue righe stanno in <see cref="ReceiptItem"/>, gli appartengono e muoiono con lui.
 /// </summary>
 public class Receipt : EntityBase
 {
@@ -25,6 +25,14 @@ public class Receipt : EntityBase
     /// della vista di spesa devono essere esatte al centesimo.
     /// </summary>
     public long? TotalCents { get; set; }
+
+    /// <summary>
+    /// Totale dell'imposta ("di cui IVA") in centesimi, se stampato sullo scontrino. Mai
+    /// calcolato dal totale: un valore dedotto sarebbe indistinguibile da uno letto, e il
+    /// confronto con il riepilogo IVA perderebbe senso avendo entrambi i termini dalla
+    /// stessa fonte.
+    /// </summary>
+    public long? TaxCents { get; set; }
 
     /// <summary>Valuta dell'importo. Oggi sempre "EUR"; il campo esiste per non chiudere porte.</summary>
     public string Currency { get; set; } = "EUR";

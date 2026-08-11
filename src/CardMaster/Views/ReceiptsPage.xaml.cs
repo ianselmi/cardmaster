@@ -117,10 +117,17 @@ public partial class ReceiptsPage : ContentPage
             // Si passa (e si conserva) il testo con le righe ricostruite dalla geometria, non
             // quello grezzo di ML Kit: sul grezzo le colonne sono separate e la riga del totale
             // arriva senza importo. Così il testo è anche leggibile nel dettaglio e ri-parsabile.
+            // Le righe si ricostruiscono qui, dove la geometria dell'OCR è ancora disponibile:
+            // il testo conservato non porta le coordinate, e senza coordinate le colonne non si
+            // separano più. È la ragione per cui questa struttura viaggia fino alla conferma
+            // invece di essere ricalcolata lì come la testata.
+            var layout = ReceiptTextLayout.ToVisualLayout(result);
+
             await Shell.Current.GoToAsync("ReceiptFormPage", new Dictionary<string, object>
             {
-                ["rawText"] = ReceiptTextLayout.ToVisualText(result),
+                ["rawText"] = string.Join("\n", layout.Select(l => l.Text)),
                 ["imagePath"] = imagePath,
+                ["items"] = ReceiptItemsParser.Parse(layout),
             });
         }
         catch (Exception)

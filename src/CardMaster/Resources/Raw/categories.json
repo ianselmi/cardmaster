@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "categories": [
+    {
+      "id": "ortofrutta",
+      "name": "Ortofrutta",
+      "keywords": [
+        "mela", "mele", "pera", "pere", "banana", "banane", "arancia", "arance", "limone",
+        "limoni", "pesca", "pesche", "albicocca", "uva", "fragola", "fragole", "kiwi",
+        "anguria", "melone", "insalata", "lattuga", "pomodoro", "pomodori", "zucchina",
+        "zucchine", "carota", "carote", "patata", "patate", "cipolla", "cipolle", "aglio",
+        "melanzana", "melanzane", "peperone", "peperoni", "spinaci", "finocchio", "sedano",
+        "broccoli", "cavolo", "funghi", "ortofrutta", "verdura", "frutta"
+      ]
+    },
+    {
+      "id": "carne-pesce",
+      "name": "Carne e pesce",
+      "keywords": [
+        "pollo", "tacchino", "manzo", "vitello", "maiale", "salsiccia", "hamburger",
+        "macinato", "bistecca", "arrosto", "prosciutto", "mortadella", "salame", "speck",
+        "bresaola", "wurstel", "affettato", "affettati", "tonno", "salmone", "merluzzo",
+        "gambero", "gamberi", "platessa", "pesce", "carne"
+      ]
+    },
+    {
+      "id": "latticini",
+      "name": "Latticini e uova",
+      "keywords": [
+        "latte", "yogurt", "skyr", "burro", "panna", "formaggio", "mozzarella", "ricotta",
+        "stracchino", "philadelphia", "primosale", "parmigiano", "grana", "pecorino",
+        "gorgonzola", "provolone", "scamorza", "mascarpone", "uova", "uovo", "kefir"
+      ]
+    },
+    {
+      "id": "dispensa",
+      "name": "Dispensa",
+      "keywords": [
+        "pasta", "riso", "farina", "zucchero", "sale", "olio", "aceto", "pomodori pelati",
+        "passata", "legumi", "fagioli", "ceci", "lenticchie", "tonno in scatola", "conserva",
+        "sugo", "pesto", "brodo", "dado", "spezie", "cous cous", "orzo", "farro", "quinoa",
+        "polenta", "mais", "tofu", "seitan", "soia"
+      ]
+    },
+    {
+      "id": "colazione-dolci",
+      "name": "Colazione e dolci",
+      "keywords": [
+        "biscotti", "biscotto", "merendine", "brioche", "cornetto", "fette biscottate",
+        "cereali", "muesli", "marmellata", "confettura", "miele", "cioccolato", "cioccolata",
+        "caramelle", "torta", "crostata", "budino", "gelato", "barretta", "barrette",
+        "nutella", "crema spalmabile", "zucchero filato", "snack dolce"
+      ]
+    },
+    {
+      "id": "panetteria",
+      "name": "Pane e panetteria",
+      "keywords": [
+        "pane", "baguette", "focaccia", "piadina", "pizza", "grissini", "crackers",
+        "cracker", "taralli", "pancarre", "michetta", "rosetta", "ciabatta", "panino",
+        "panini", "schiacciata"
+      ]
+    },
+    {
+      "id": "surgelati",
+      "name": "Surgelati",
+      "keywords": [
+        "surgelato", "surgelati", "bastoncini", "minestrone surgelato", "piselli surgelati",
+        "gelati", "ghiaccio"
+      ]
+    },
+    {
+      "id": "bevande",
+      "name": "Bevande",
+      "keywords": [
+        "acqua", "minerale", "succo", "aranciata", "cola", "gassosa", "the freddo", "bibita",
+        "bibite", "birra", "vino", "spumante", "prosecco", "caffe", "caffè", "capsule",
+        "cialde", "the", "tisana", "camomilla", "orzo solubile", "energy drink"
+      ]
+    },
+    {
+      "id": "cura-casa",
+      "name": "Cura della casa",
+      "keywords": [
+        "detersivo", "detergente", "ammorbidente", "candeggina", "sgrassatore", "anticalcare",
+        "spray vetri", "piatti", "lavastoviglie", "spugna", "spugne", "guanti", "sacchetti",
+        "sacco spazzatura", "shopper", "carta casa", "scottex", "carta igienica", "tovaglioli",
+        "pellicola", "alluminio", "bicchieri", "posate", "deodorante ambiente", "scopa",
+        "straccio", "mater-bi"
+      ]
+    },
+    {
+      "id": "cura-persona",
+      "name": "Cura della persona",
+      "keywords": [
+        "shampoo", "balsamo", "bagnoschiuma", "sapone", "dentifricio", "spazzolino",
+        "collutorio", "deodorante", "rasoio", "schiuma da barba", "crema", "assorbenti",
+        "pannolini", "salviette", "cotton fioc", "profumo", "solare", "cerotti", "integratore"
+      ]
+    },
+    {
+      "id": "animali",
+      "name": "Animali",
+      "keywords": [
+        "croccantini", "cibo per cani", "cibo per gatti", "lettiera", "gatto", "cane",
+        "pet food"
+      ]
+    }
+  ]
+}

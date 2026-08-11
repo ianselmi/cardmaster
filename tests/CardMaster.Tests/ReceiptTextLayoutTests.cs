@@ -122,4 +122,33 @@ public class ReceiptTextLayoutTests
     {
         Assert.Empty(ReceiptTextLayout.ToVisualLines(OcrResult.Empty));
     }
+
+    /// <summary>
+    /// Scontrino fotografato storto: ogni frammento è un po' più in basso del precedente, e
+    /// ognuno si sovrappone al successivo quanto basta. Senza un limite all'altezza della riga
+    /// la sovrapposizione si propaga per transitività e le righe collassano in una sola.
+    /// <para>
+    /// Non è un caso teorico: su uno scontrino MD reale sette prodotti sono finiti su una riga
+    /// con tutte le loro aliquote e tutti i loro prezzi in coda, rendendoli irrecuperabili.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Foto_storta_non_fa_collassare_le_righe_una_sull_altra()
+    {
+        // Passo verticale 18 su altezza 30: ogni coppia adiacente si sovrappone del 40%, ma
+        // dalla prima all'ultima ci sono tre righe di distanza.
+        var result = new OcrResult("", [
+            Block(
+                Line("PRIMO PRODOTTO", 40, 0),
+                Line("SECONDO PRODOTTO", 40, 18),
+                Line("TERZO PRODOTTO", 40, 36),
+                Line("QUARTO PRODOTTO", 40, 54)),
+        ]);
+
+        var lines = ReceiptTextLayout.ToVisualLines(result);
+
+        Assert.True(lines.Count >= 3, $"Righe collassate: {lines.Count} invece di almeno 3.");
+        Assert.DoesNotContain(lines, l => l.Contains("PRIMO", StringComparison.Ordinal) &&
+                                          l.Contains("QUARTO", StringComparison.Ordinal));
+    }
 }
