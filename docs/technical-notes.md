@@ -75,6 +75,56 @@ lista non scorre più.
 
 ---
 
+## OCR degli scontrini (ML Kit Text Recognition)
+
+> Origine: `receipt-capture` (11 ago 2026), tutte verificate su emulatore.
+
+### ML Kit non restituisce le righe: restituisce colonne
+`Text.GetText()` concatena i **blocchi**, non le righe visive. Su uno scontrino a colonne questo
+produce prima tutte le descrizioni e poi tutti i prezzi: nel testo grezzo `TOTALE COMPLESSIVO` e
+il suo `6,61` sono a quindici righe di distanza. Qualunque regola che cerchi l'importo "sulla
+stessa riga della parola chiave, o su quella dopo" **fallisce sul testo grezzo pur funzionando
+perfettamente sul testo di prova scritto a mano**.
+
+La riga visiva va ricostruita dalla geometria (`Text.TextBlock` → `Line` → `BoundingBox`):
+raggruppare i frammenti per banda verticale (sovrapposizione ≥ 50% dell'altezza minore) e
+ordinarli per `x`. È `Services/Receipts/ReceiptTextLayout.cs`. Conservare il testo **ricostruito**,
+non il grezzo: è l'unico ri-parsabile.
+
+### L'OCR spezza i gruppi di cifre
+Visti nella stessa prova: `11/08/ 2026` (spazio dopo la barra) e `-0, 50` (spazio dopo la virgola).
+Le regex su date e importi devono tollerare spazi attorno ai separatori, altrimenti scartano dati
+perfettamente leggibili.
+
+### Non accettare il punto come separatore dell'ora
+Un pattern `hh[:.]mm` aggancia i primi due gruppi di una data puntata: `05.08.2026 20:03` viene
+letto come le **05:08**. Solo `hh:mm`; meglio perdere l'ora che registrarne una sbagliata.
+
+## Date e sqlite-net
+
+> Origine: `receipt-capture` (11 ago 2026).
+
+### `DateTimeOffset` con offset locale torna indietro di un giorno
+sqlite-net persiste un `DateTimeOffset` come **tick UTC** e lo rilegge come UTC. Salvare la
+mezzanotte locale con offset `+02:00` significa rileggere le 22:00 del **giorno precedente**: ogni
+data risultava di un giorno prima, e a cavallo di fine mese sarebbe finita nel mese sbagliato —
+un errore silenzioso, che non fa saltare nulla e falsa gli aggregati.
+
+Per una **data di calendario** (non un istante) ancorare a mezzanotte UTC:
+`new DateTimeOffset(DateTime.SpecifyKind(d.Date, DateTimeKind.Unspecified), TimeSpan.Zero)`.
+
+### `SpecifyKind` non è opzionale in quella riga
+`new DateTimeOffset(dt, TimeSpan.Zero)` **lancia** `ArgumentException` ("The UTC Offset of the
+local dateTime parameter does not match the offset argument") se `dt.Kind == Local` — ed è il Kind
+che restituisce il `DatePicker` di MAUI. Il crash arriva a runtime al salvataggio, non in
+compilazione.
+
+## Navigazione Shell
+
+### Due `ShellContent` nudi danno un menu a panino, non le tab
+Per la barra di navigazione **in basso** serve racchiuderli in un `<TabBar>`. Senza, Shell crea un
+flyout con l'icona a panino in alto a sinistra. *(Origine: `receipt-capture`, 11 ago 2026.)*
+
 ## Build Android — trappole
 
 ### Crash a `Theme.MaterialComponents` dopo build incrementali: pulire `obj/`
@@ -107,3 +157,9 @@ ridistribuire (**non** `pm clear`, vedi la skill `android-emulator`).
 partizione `/data` piena. `pm trim-caches` in genere non libera nulla e le immagini playstore non
 sono rootabili: usare un altro AVD, oppure disinstallare app di terze parti da quello pieno
 (`pm list packages -3` per vederle).
+
+Variante con messaggio diverso e stessa causa: `ADB0060: InsufficientSpaceException ... not enough
+storage space on the device to store package: /data/local/tmp/...apk`. **Non fidarsi del valore
+"Avail" di `df`**: Android rifiuta le installazioni quando lo spazio libero scende sotto una soglia
+di riserva (~10% della partizione), quindi con 466 MB liberi su 5,8 GB un APK da 59 MB viene
+rifiutato lo stesso. Con ~700 MB liberi lo stesso APK si installa. *(11 ago 2026.)*

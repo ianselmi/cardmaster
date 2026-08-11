@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.ReceiptDetailPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="Scontrino">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Modifica" Clicked="OnEditClicked" />
+        <ToolbarItem Text="Elimina" Clicked="OnDeleteClicked" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="{StaticResource PagePadding}" Spacing="{StaticResource SectionSpacing}">
+
+            <VerticalStackLayout Spacing="2">
+                <Label Text="{Binding Merchant}" Style="{StaticResource SubHeadline}" />
+                <Label Text="{Binding Date}" Style="{StaticResource CaptionLabel}" />
+                <Label IsVisible="{Binding HasVatId}" Text="{Binding VatId, StringFormat='P.IVA {0}'}" Style="{StaticResource CaptionLabel}" />
+            </VerticalStackLayout>
+
+            <Label Text="{Binding Total}" Style="{StaticResource Headline}" />
+
+            <Image
+                IsVisible="{Binding HasImage}"
+                Source="{Binding Image}"
+                Aspect="AspectFit"
+                MaximumHeightRequest="420" />
+
+            <Label
+                IsVisible="{Binding ShowImageMissing}"
+                Text="{Binding ImageMissingMessage}"
+                Style="{StaticResource CaptionLabel}" />
+
+            <VerticalStackLayout IsVisible="{Binding HasRawText}" Spacing="4">
+                <Label Text="Testo riconosciuto" Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding RawText}" FontFamily="monospace" FontSize="{StaticResource FontSizeCaption}" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

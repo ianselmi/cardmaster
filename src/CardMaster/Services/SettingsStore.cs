@@ -23,6 +23,7 @@ public sealed class SettingsStore : ISettingsStore
     private const string LastUpdateCheckAvailableVersionKey = "update_last_check_available_version";
     private const string UpdateNotifyEnabledKey = "update_notify_enabled";
     private const string UpdateNotifyDismissedVersionKey = "update_notify_dismissed_version";
+    private const string KeepReceiptImagesKey = "receipts_keep_images";
 
     public AppThemePreference Theme
     {
@@ -179,6 +180,12 @@ public sealed class SettingsStore : ISettingsStore
                 Preferences.Default.Set(UpdateNotifyDismissedVersionKey, value);
             }
         }
+    }
+
+    public bool KeepReceiptImages
+    {
+        get => Preferences.Default.Get(KeepReceiptImagesKey, true);
+        set => Preferences.Default.Set(KeepReceiptImagesKey, value);
     }
 
     private static long? GetNullableLong(string key) =>

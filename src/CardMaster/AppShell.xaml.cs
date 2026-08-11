@@ -15,6 +15,10 @@ public partial class AppShell : Shell
 		Routing.RegisterRoute("EditCardPage", typeof(EditCardPage));
 		Routing.RegisterRoute("SharePage", typeof(SharePage));
 
+		// Rotte della sezione Scontrini (la lista è una ShellContent, non una rotta).
+		Routing.RegisterRoute("ReceiptFormPage", typeof(ReceiptFormPage));
+		Routing.RegisterRoute("ReceiptDetailPage", typeof(ReceiptDetailPage));
+
 		// Rotta della pagina Impostazioni.
 		Routing.RegisterRoute("SettingsPage", typeof(SettingsPage));
 

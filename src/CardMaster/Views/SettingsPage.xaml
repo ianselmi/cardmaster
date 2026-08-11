@@ -37,6 +37,19 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="4">
+                <Label Text="Scontrini" Style="{StaticResource CaptionLabel}" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0" Text="Conserva l'immagine degli scontrini" VerticalOptions="Center" />
+                    <Switch Grid.Column="1" IsToggled="{Binding KeepReceiptImages}" />
+                </Grid>
+                <Label Text="{Binding ReceiptImagesSizeText}" Style="{StaticResource CaptionLabel}" />
+                <Button
+                    Text="Libera spazio"
+                    IsVisible="{Binding HasReceiptImages}"
+                    Clicked="OnClearReceiptImagesClicked" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="4">
                 <Label Text="Aggiornamenti" Style="{StaticResource CaptionLabel}" />
                 <Button Text="Controllo aggiornamenti" Clicked="OnUpdateClicked" />
             </VerticalStackLayout>

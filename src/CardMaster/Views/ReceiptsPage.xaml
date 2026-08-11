@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="CardMaster.Views.ReceiptsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:CardMaster.ViewModels"
+    Title="Scontrini">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <VerticalStackLayout
+            Grid.Row="0"
+            Padding="{StaticResource PagePadding}"
+            Spacing="{StaticResource TightSpacing}">
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button
+                    Grid.Column="0"
+                    x:Name="CaptureButton"
+                    Text="Fotografa"
+                    Clicked="OnCapturePhotoClicked" />
+                <Button
+                    Grid.Column="1"
+                    x:Name="PickImageButton"
+                    Text="Da immagine"
+                    Clicked="OnPickImageClicked" />
+            </Grid>
+
+            <Border
+                IsVisible="{Binding HasReceipts}"
+                Padding="12"
+                StrokeThickness="0"
+                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding MonthLabel}" Style="{StaticResource CaptionLabel}" />
+                    <Label Text="{Binding MonthTotal}" Style="{StaticResource SubHeadline}" />
+                    <!-- BindableLayout e non CollectionView: poche righe, e una lista scrollabile
+                         dentro la pagina scrollabile darebbe due scroll annidati. -->
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding MonthByMerchant}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MerchantSpendItem">
+                                <Grid ColumnDefinitions="*,Auto" Padding="0,2">
+                                    <Label Grid.Column="0" Text="{Binding Merchant}" LineBreakMode="TailTruncation" />
+                                    <Label Grid.Column="1" Text="{Binding Amount}" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label
+                IsVisible="{Binding HasIncomplete}"
+                Text="{Binding IncompleteMessage}"
+                Style="{StaticResource CaptionLabel}" />
+
+        </VerticalStackLayout>
+
+        <VerticalStackLayout
+            Grid.Row="1"
+            IsVisible="{Binding IsEmpty}"
+            Padding="{StaticResource PagePadding}"
+            Spacing="{StaticResource TightSpacing}"
+            VerticalOptions="Center">
+            <Label Text="Nessuno scontrino" Style="{StaticResource SubHeadline}" HorizontalTextAlignment="Center" />
+            <Label
+                Text="Fotografa uno scontrino o scegli un'immagine già sul telefono: CardMaster ne legge esercente, data e totale, e tu correggi quello che serve."
+                Style="{StaticResource CaptionLabel}"
+                HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <CollectionView
+            Grid.Row="1"
+            IsVisible="{Binding HasReceipts}"
+            ItemsSource="{Binding Receipts}"
+            SelectionMode="Single"
+            SelectionChanged="OnReceiptSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:ReceiptListItem">
+                    <Grid Padding="16,10" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Text="{Binding Merchant}"
+                            LineBreakMode="TailTruncation" />
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="{Binding Total}" />
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Text="{Binding Date}"
+                            Style="{StaticResource CaptionLabel}" />
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            IsVisible="{Binding IsIncomplete}"
+                            Text="da completare"
+                            Style="{StaticResource CaptionLabel}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+
+</ContentPage>

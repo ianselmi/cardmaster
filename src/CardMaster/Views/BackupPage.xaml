@@ -76,6 +76,13 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="4">
+                    <Label Text="Cosa comprende il backup" Style="{StaticResource CaptionLabel}" />
+                    <Label
+                        Text="Il backup salva il database: carte e scontrini con i loro dati e il testo riconosciuto. Le immagini degli scontrini NON sono comprese e non tornano dopo un ripristino."
+                        FontSize="{StaticResource FontSizeBody}" />
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="4">
                     <Label Text="Frequenza" Style="{StaticResource CaptionLabel}" />
                     <Picker
                         ItemsSource="{Binding FrequencyOptions}"
