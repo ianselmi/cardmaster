@@ -1,4 +1,5 @@
 using CardMaster.Data;
+using SQLite;
 
 namespace CardMaster.Services.Receipts;
 
@@ -78,5 +79,74 @@ public sealed class ReceiptRepository : IReceiptRepository
 
         var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
         await connection.UpdateAsync(receipt).ConfigureAwait(false);
+
+        // Le righe muoiono con lo scontrino: restare attive le lascerebbe nelle aggregazioni di
+        // uno scontrino che l'utente ha eliminato.
+        await TombstoneItemsAsync(connection, id, now).ConfigureAwait(false);
+    }
+
+    public async Task<List<ReceiptItem>> GetItemsAsync(string receiptId)
+    {
+        if (string.IsNullOrEmpty(receiptId))
+        {
+            return [];
+        }
+
+        var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
+        var items = await connection.Table<ReceiptItem>()
+            .Where(i => i.ReceiptId == receiptId && i.DeletedAt == null)
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        return items.OrderBy(i => i.Order).ToList();
+    }
+
+    public async Task ReplaceItemsAsync(string receiptId, IReadOnlyList<ReceiptItem> items)
+    {
+        if (string.IsNullOrEmpty(receiptId))
+        {
+            return;
+        }
+
+        var connection = await _database.GetConnectionAsync().ConfigureAwait(false);
+        var now = DateTimeOffset.UtcNow;
+
+        await TombstoneItemsAsync(connection, receiptId, now).ConfigureAwait(false);
+
+        var order = 0;
+        foreach (var item in items)
+        {
+            if (string.IsNullOrEmpty(item.Id))
+            {
+                item.Id = Guid.NewGuid().ToString();
+            }
+
+            item.ReceiptId = receiptId;
+            item.Order = order++;
+            item.CreatedAt = now;
+            item.UpdatedAt = now;
+            item.DeletedAt = null;
+
+            await connection.InsertAsync(item).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Marca come cancellate tutte le righe attive di uno scontrino.</summary>
+    private static async Task TombstoneItemsAsync(
+        SQLiteAsyncConnection connection,
+        string receiptId,
+        DateTimeOffset now)
+    {
+        var previous = await connection.Table<ReceiptItem>()
+            .Where(i => i.ReceiptId == receiptId && i.DeletedAt == null)
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        foreach (var item in previous)
+        {
+            item.DeletedAt = now;
+            item.UpdatedAt = now;
+            await connection.UpdateAsync(item).ConfigureAwait(false);
+        }
     }
 }

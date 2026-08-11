@@ -35,8 +35,17 @@
   -->
   <ItemGroup>
     <Compile Include="../../src/CardMaster/Services/Receipts/IReceiptOcr.cs" Link="SourceUnderTest/IReceiptOcr.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptVisualLine.cs" Link="SourceUnderTest/ReceiptVisualLine.cs" />
     <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptTextLayout.cs" Link="SourceUnderTest/ReceiptTextLayout.cs" />
+    <Compile Include="../../src/CardMaster/Services/TextNormalizer.cs" Link="SourceUnderTest/TextNormalizer.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptAmount.cs" Link="SourceUnderTest/ReceiptAmount.cs" />
     <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptHeaderParser.cs" Link="SourceUnderTest/ReceiptHeaderParser.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptVatSummary.cs" Link="SourceUnderTest/ReceiptVatSummary.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptItemLine.cs" Link="SourceUnderTest/ReceiptItemLine.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptItemsParser.cs" Link="SourceUnderTest/ReceiptItemsParser.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptTotalsCheck.cs" Link="SourceUnderTest/ReceiptTotalsCheck.cs" />
+    <Compile Include="../../src/CardMaster/Data/ProductCategory.cs" Link="SourceUnderTest/ProductCategory.cs" />
+    <Compile Include="../../src/CardMaster/Services/Receipts/CategoryMatcher.cs" Link="SourceUnderTest/CategoryMatcher.cs" />
   </ItemGroup>
 
 </Project>

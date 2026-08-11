@@ -27,8 +27,10 @@ public partial class ReceiptFormPage : ContentPage, IQueryAttributable
             if (!await _viewModel.LoadExistingAsync(receiptId))
             {
                 await Shell.Current.GoToAsync("..");
+                return;
             }
 
+            await _viewModel.LoadCategoriesAsync();
             return;
         }
 
@@ -38,7 +40,24 @@ public partial class ReceiptFormPage : ContentPage, IQueryAttributable
         var rawText = query.TryGetValue("rawText", out var raw) && raw is string text ? text : string.Empty;
         var imagePath = query.TryGetValue("imagePath", out var path) && path is string p ? p : null;
 
-        _viewModel.InitializeFromCapture(ReceiptHeaderParser.Parse(rawText), rawText, imagePath);
+        // Le righe invece arrivano già ricostruite: si separano guardando le coordinate dei
+        // frammenti, e le coordinate non sopravvivono al testo. Rifarle qui sarebbe impossibile.
+        var items = query.TryGetValue("items", out var parsed) && parsed is ReceiptItemsResult result
+            ? result
+            : ReceiptItemsResult.None;
+
+        _viewModel.InitializeFromCapture(ReceiptHeaderParser.Parse(rawText), rawText, imagePath, items);
+        await _viewModel.LoadCategoriesAsync();
+    }
+
+    private void OnAddItemClicked(object? sender, EventArgs e) => _viewModel.AddEmptyItem();
+
+    private void OnRemoveItemClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button { BindingContext: ReceiptItemViewModel item })
+        {
+            _viewModel.RemoveItem(item);
+        }
     }
 
     private async void OnSaveClicked(object? sender, EventArgs e)

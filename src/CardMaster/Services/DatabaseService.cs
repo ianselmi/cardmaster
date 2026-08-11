@@ -20,7 +20,12 @@ public sealed class DatabaseService : IDatabaseService
     // v3 (change receipt-capture): tabella Receipt. La crea CreateTableAsync<Receipt>() sulle
     // installazioni esistenti; l'incremento serve, come sopra, solo alla guardia del ripristino:
     // un backup -v3 contiene scontrini che un'app più vecchia non saprebbe mostrare.
-    private const int SchemaVersion = 3;
+    //
+    // v4 (change receipt-items): tabelle ReceiptItem e ProductMapping, più la colonna TaxCents su
+    // Receipt. Anche qui non c'è migrazione da scrivere — CreateTableAsync crea le tabelle nuove
+    // e aggiunge la colonna mancante a quella esistente — e l'incremento serve solo alla guardia:
+    // un backup -v4 porta le righe degli scontrini, che un'app più vecchia perderebbe in silenzio.
+    private const int SchemaVersion = 4;
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private SQLiteAsyncConnection? _connection;
@@ -51,6 +56,8 @@ public sealed class DatabaseService : IDatabaseService
 
             await connection.CreateTableAsync<Card>().ConfigureAwait(false);
             await connection.CreateTableAsync<Receipt>().ConfigureAwait(false);
+            await connection.CreateTableAsync<ReceiptItem>().ConfigureAwait(false);
+            await connection.CreateTableAsync<ProductMapping>().ConfigureAwait(false);
             await ApplySchemaVersionAsync(connection).ConfigureAwait(false);
 
             _connection = connection;

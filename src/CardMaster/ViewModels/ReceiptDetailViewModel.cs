@@ -1,8 +1,27 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CardMaster.Data;
 using CardMaster.Services.Receipts;
 
 namespace CardMaster.ViewModels;
+
+/// <summary>Riga dello scontrino come si legge nel dettaglio: la stessa tabella del cartaceo.</summary>
+/// <param name="Description">Descrizione stampata.</param>
+/// <param name="Quantity">Quantità, vuota quando è una sola unità.</param>
+/// <param name="Vat">Aliquota in percentuale, <b>vuota</b> quando non è stata letta.</param>
+/// <param name="Amount">Importo formattato in euro.</param>
+/// <param name="Category">Categoria, vuota se la riga non è classificata.</param>
+public readonly record struct ReceiptDetailItem(
+    string Description,
+    string Quantity,
+    string Vat,
+    string Amount,
+    string Category)
+{
+    public bool HasQuantity => Quantity.Length > 0;
+
+    public bool HasCategory => Category.Length > 0;
+}
 
 /// <summary>
 /// Dettaglio in sola lettura di uno scontrino: dati di testata, immagine se conservata,
@@ -12,8 +31,10 @@ public sealed class ReceiptDetailViewModel : ObservableObject
 {
     private readonly IReceiptRepository _repository;
     private readonly IReceiptImageStore _imageStore;
+    private readonly ICategoryCatalog _categories;
 
     private Receipt? _receipt;
+    private string _balanceMessage = string.Empty;
     private string _merchant = string.Empty;
     private string _date = string.Empty;
     private string _total = string.Empty;
@@ -21,13 +42,32 @@ public sealed class ReceiptDetailViewModel : ObservableObject
     private string _rawText = string.Empty;
     private ImageSource? _image;
 
-    public ReceiptDetailViewModel(IReceiptRepository repository, IReceiptImageStore imageStore)
+    public ReceiptDetailViewModel(
+        IReceiptRepository repository,
+        IReceiptImageStore imageStore,
+        ICategoryCatalog categories)
     {
         _repository = repository;
         _imageStore = imageStore;
+        _categories = categories;
     }
 
     public string? ReceiptId => _receipt?.Id;
+
+    /// <summary>Righe dello scontrino, in sola lettura.</summary>
+    public ObservableCollection<ReceiptDetailItem> Items { get; } = [];
+
+    public bool HasItems => Items.Count > 0;
+
+    /// <summary>
+    /// Esito della quadratura. Vuoto per uno scontrino senza righe — acquisito prima che l'app
+    /// le leggesse — che resta consultabile come sempre, senza sezioni vuote né errori.
+    /// </summary>
+    public string BalanceMessage
+    {
+        get => _balanceMessage;
+        private set => SetProperty(ref _balanceMessage, value);
+    }
 
     public string Merchant
     {
@@ -119,10 +159,77 @@ public sealed class ReceiptDetailViewModel : ObservableObject
         VatId = receipt.MerchantVatId ?? string.Empty;
         RawText = receipt.RawText;
 
+        await LoadItemsAsync(receipt).ConfigureAwait(true);
+
         var full = _imageStore.ResolveFullPath(receipt.ImagePath);
         Image = full is null ? null : ImageSource.FromFile(full);
         OnPropertyChanged(nameof(ShowImageMissing));
         return true;
+    }
+
+    private async Task LoadItemsAsync(Receipt receipt)
+    {
+        Items.Clear();
+
+        var stored = await _repository.GetItemsAsync(receipt.Id).ConfigureAwait(true);
+        if (stored.Count == 0)
+        {
+            BalanceMessage = string.Empty;
+            OnPropertyChanged(nameof(HasItems));
+            return;
+        }
+
+        var catalog = await _categories.GetAllAsync().ConfigureAwait(true);
+
+        foreach (var item in stored)
+        {
+            Items.Add(new ReceiptDetailItem(
+                item.Description,
+                FormatQuantity(item),
+                item.VatRateBasisPoints is null
+                    ? string.Empty
+                    : (item.VatRateBasisPoints.Value / 100m).ToString("0.##", ReceiptListViewModel.Italian) + "%",
+                ReceiptListViewModel.FormatCents(item.AmountCents),
+                catalog.FirstOrDefault(c => c.Id == item.Category)?.Name ?? string.Empty));
+        }
+
+        var sum = stored.Sum(i => i.AmountCents);
+        BalanceMessage = BuildBalanceMessage(sum, receipt.TotalCents);
+        OnPropertyChanged(nameof(HasItems));
+    }
+
+    /// <summary>
+    /// La quadratura resta un'affermazione sullo scontrino salvato: dice se le righe conservate
+    /// tornano con il totale, senza rifare il riconoscimento e senza correggere niente.
+    /// </summary>
+    private static string BuildBalanceMessage(long sum, long? total)
+    {
+        if (total is null)
+        {
+            return $"Righe per {ReceiptListViewModel.FormatCents(sum)}. Senza totale non sono verificabili.";
+        }
+
+        var difference = sum - total.Value;
+        if (difference == 0)
+        {
+            return $"Le righe tornano con il totale: {ReceiptListViewModel.FormatCents(sum)}.";
+        }
+
+        var gap = ReceiptListViewModel.FormatCents(Math.Abs(difference));
+        return $"Le righe non tornano con il totale: {ReceiptListViewModel.FormatCents(sum)}, cioè {gap} " +
+               (difference > 0 ? "in più." : "in meno.");
+    }
+
+    /// <summary>Quantità mostrata solo quando dice qualcosa: una unità non si scrive.</summary>
+    private static string FormatQuantity(ReceiptItem item)
+    {
+        if (item.Unit == ReceiptItemUnit.Piece && item.QuantityMilli == ReceiptItemLine.SingleUnit)
+        {
+            return string.Empty;
+        }
+
+        var quantity = (item.QuantityMilli / 1000m).ToString("0.###", ReceiptListViewModel.Italian);
+        return item.Unit == ReceiptItemUnit.Kilogram ? $"{quantity} kg" : $"{quantity} pz";
     }
 
     /// <summary>
