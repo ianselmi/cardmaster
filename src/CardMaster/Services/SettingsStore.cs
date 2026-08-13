@@ -1,4 +1,5 @@
 using CardMaster.Services.Backup;
+using CardMaster.Services.Receipts;
 using Microsoft.Maui.Storage;
 
 namespace CardMaster.Services;
@@ -24,6 +25,11 @@ public sealed class SettingsStore : ISettingsStore
     private const string UpdateNotifyEnabledKey = "update_notify_enabled";
     private const string UpdateNotifyDismissedVersionKey = "update_notify_dismissed_version";
     private const string KeepReceiptImagesKey = "receipts_keep_images";
+    private const string AiScanEnabledKey = "ai_scan_enabled";
+    private const string AiScanModelIdKey = "ai_scan_model_id";
+    private const string LastAiScanInputTokensKey = "ai_scan_last_input_tokens";
+    private const string LastAiScanOutputTokensKey = "ai_scan_last_output_tokens";
+    private const string LastAiScanCostMicroCentsKey = "ai_scan_last_cost_microcents";
 
     public AppThemePreference Theme
     {
@@ -186,6 +192,36 @@ public sealed class SettingsStore : ISettingsStore
     {
         get => Preferences.Default.Get(KeepReceiptImagesKey, true);
         set => Preferences.Default.Set(KeepReceiptImagesKey, value);
+    }
+
+    public bool AiScanEnabled
+    {
+        get => Preferences.Default.Get(AiScanEnabledKey, false);
+        set => Preferences.Default.Set(AiScanEnabledKey, value);
+    }
+
+    public string AiScanModelId
+    {
+        get => Preferences.Default.Get(AiScanModelIdKey, ReceiptAiModels.DefaultModelId);
+        set => Preferences.Default.Set(AiScanModelIdKey, value);
+    }
+
+    public long? LastAiScanInputTokens
+    {
+        get => GetNullableLong(LastAiScanInputTokensKey);
+        set => SetNullableLong(LastAiScanInputTokensKey, value);
+    }
+
+    public long? LastAiScanOutputTokens
+    {
+        get => GetNullableLong(LastAiScanOutputTokensKey);
+        set => SetNullableLong(LastAiScanOutputTokensKey, value);
+    }
+
+    public long? LastAiScanCostMicroCents
+    {
+        get => GetNullableLong(LastAiScanCostMicroCentsKey);
+        set => SetNullableLong(LastAiScanCostMicroCentsKey, value);
     }
 
     private static long? GetNullableLong(string key) =>

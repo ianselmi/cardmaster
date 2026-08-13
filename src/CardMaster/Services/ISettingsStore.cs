@@ -70,4 +70,25 @@ public interface ISettingsStore
     /// verificare una cifra dubbia. Disattivandola si salvano solo dati e testo riconosciuto.
     /// </summary>
     bool KeepReceiptImages { get; set; }
+
+    /// <summary>
+    /// Rilettura degli scontrini tramite modello. Default false: la funzione nasce spenta, ed è
+    /// l'unico stato in cui nessun dato dello scontrino può lasciare il device.
+    /// </summary>
+    bool AiScanEnabled { get; set; }
+
+    /// <summary>Identificativo del modello scelto. Default <c>claude-opus-5</c>.</summary>
+    string AiScanModelId { get; set; }
+
+    /// <summary>Token in ingresso dell'ultima rilettura; null se mai eseguita.</summary>
+    long? LastAiScanInputTokens { get; set; }
+
+    /// <summary>Token in uscita dell'ultima rilettura; null se mai eseguita.</summary>
+    long? LastAiScanOutputTokens { get; set; }
+
+    /// <summary>
+    /// Costo effettivo dell'ultima rilettura in millesimi di centesimo, ricavato dal consumo
+    /// riportato dalla risposta — non dalla stima. Null se mai eseguita.
+    /// </summary>
+    long? LastAiScanCostMicroCents { get; set; }
 }
