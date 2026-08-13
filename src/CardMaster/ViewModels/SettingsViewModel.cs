@@ -45,7 +45,15 @@ public sealed class SettingsViewModel : ObservableObject
         _receipts = receipts;
         _aiCredentials = aiCredentials;
         _aiKeyVerifier = aiKeyVerifier;
+
+        // La rilettura avviene su un'altra pagina, e questa può essere già aperta e viva su
+        // un'altra tab: tornandoci non passa da OnAppearing e mostrerebbe il costo di prima.
+        // La sottoscrizione è debole, quindi non serve disiscriversi.
+        _settings.AiUsageChanged += OnAiUsageChanged;
     }
+
+    private void OnAiUsageChanged(object? sender, EventArgs e) =>
+        MainThread.BeginInvokeOnMainThread(() => OnPropertyChanged(nameof(AiLastCostText)));
 
     public IReadOnlyList<string> ThemeOptions => ThemeLabels;
 

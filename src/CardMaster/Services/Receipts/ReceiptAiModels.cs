@@ -92,11 +92,18 @@ public static class ReceiptAiModels
         All.FirstOrDefault(m => m.Id == id) ?? All[0];
 
     /// <summary>
-    /// Consumo di uno scontrino tipico: immagine ridimensionata (~2.000 token) più un JSON di una
-    /// trentina di righe (~1.200 token). Sta qui e non nell'interfaccia perché il costo mostrato
+    /// Consumo di uno scontrino tipico. Sta qui e non nell'interfaccia perché il costo mostrato
     /// nelle impostazioni e quello mostrato prima dell'invio devono essere lo stesso numero.
+    /// <para>
+    /// <b>Misurato</b>, non stimato: 3.578 token in ingresso e 4.110 in uscita sullo scontrino MD
+    /// da 29 righe (emulatore, 13 ago 2026). La stima precedente — 2.000 e 1.200, ricavata a
+    /// tavolino — era <b>tre volte sotto</b>: sbagliava soprattutto sull'uscita, perché un JSON di
+    /// 29 righe con descrizione, quantità, unità, prezzo unitario, importo e aliquota costa molto
+    /// più di quanto sembri contando le righe. Dichiarare 4 centesimi e addebitarne 12 avrebbe
+    /// tradito la promessa di rendere il costo visibile <i>prima</i>.
+    /// </para>
     /// </summary>
-    public static ReceiptAiUsage TypicalUsage { get; } = new(2000, 1200, string.Empty);
+    public static ReceiptAiUsage TypicalUsage { get; } = new(3600, 4100, string.Empty);
 
     /// <summary>Costo indicativo di uno scontrino con questo modello, in millesimi di centesimo.</summary>
     public static long EstimatedCostMicroCents(ReceiptAiModelOption option) =>

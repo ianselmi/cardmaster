@@ -91,4 +91,18 @@ public interface ISettingsStore
     /// riportato dalla risposta — non dalla stima. Null se mai eseguita.
     /// </summary>
     long? LastAiScanCostMicroCents { get; set; }
+
+    /// <summary>
+    /// Scatta quando il consumo dell'ultima rilettura cambia.
+    /// <para>
+    /// Serve perché chi <b>scrive</b> il dato (la schermata dello scontrino) e chi lo
+    /// <b>mostra</b> (le Impostazioni) sono due pagine diverse, e la seconda può essere già
+    /// aperta e viva su un'altra tab mentre la prima lavora: tornandoci non passa da
+    /// <c>OnAppearing</c> e mostrerebbe un costo vecchio. Verificato su emulatore il 13 ago 2026.
+    /// </para>
+    /// L'implementazione usa un <see cref="Microsoft.Maui.WeakEventManager"/>: lo store è un
+    /// singleton e i ViewModel sono transienti, quindi una sottoscrizione forte li terrebbe in
+    /// vita per sempre.
+    /// </summary>
+    event EventHandler AiUsageChanged;
 }
