@@ -60,6 +60,26 @@ public partial class ReceiptFormPage : ContentPage, IQueryAttributable
         }
     }
 
+    /// <summary>
+    /// Chiede conferma <b>prima</b> di far uscire la foto dal device, dicendo che cosa esce,
+    /// verso chi e a spese di chi. Un "Annulla" non invia niente e non cambia niente.
+    /// </summary>
+    private async void OnRescanWithAiClicked(object? sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlertAsync(
+            "Rileggere con l'AI?",
+            _viewModel.AiRescanDisclosure,
+            "Invia",
+            "Annulla");
+
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await _viewModel.RescanWithAiAsync();
+    }
+
     private async void OnSaveClicked(object? sender, EventArgs e)
     {
         if (!_viewModel.Validate(out var error))
