@@ -42,10 +42,12 @@
 
 - [x] 4.1 La rilettura si propone **solo** quando la quadratura fallisce o non ci sono righe, e solo con funzione attiva e chiave presente
       → `ReceiptFormViewModel.CanRescanWithAi`: tutte le condizioni insieme — funzione accesa, chiave presente, un'immagine da inviare, quadratura fallita (o nessuna riga, che è l'altro caso in cui l'app sa di non aver letto). Ricalcolata a ogni `UpdateBalance`, così **la proposta sparisce da sola** appena una correzione a mano fa tornare i conti.
+      → **Confermato su emulatore**: sullo scontrino MD che non torna il pulsante compare subito sotto il messaggio di quadratura fallita; spenta la funzione, sparisce.
 - [x] 4.2 Nessuna chiamata, nessun invio e nessuna proposta quando lo scontrino quadra
       → Il pulsante è legato a `CanRescanWithAi` e non compare. `RescanWithAiAsync` ricontrolla comunque la condizione in testa: rete di sicurezza contro una chiamata partita da uno stato nel frattempo cambiato.
 - [x] 4.3 Consenso informato prima del primo invio: che cosa esce, verso chi, a spese di chi
       → Doppio: all'accensione dell'interruttore nelle impostazioni (e se l'utente rifiuta, **l'interruttore torna indietro**) e prima di ogni invio nel form, con il costo indicativo del modello scelto. Un "Annulla" non invia niente e non cambia niente.
+      → **Confermato su emulatore**: rifiutando il consenso all'accensione l'interruttore è tornato spento e lo stato è rimasto «spenta». Il consenso prima dell'invio dichiara «Costo indicativo: 4 ¢ con Claude Opus 5».
 - [x] 4.4 Le righe rilette passano per la **stessa** `ReceiptTotalsCheck` e finiscono nella stessa schermata di conferma, correggibili come le altre
       → `ApplyAiReadingAsync` chiama la stessa `ReceiptTotalsCheck.Verify`, e le righe adottate ripassano dalla **stessa classificazione in categorie** delle locali. **Una scelta che merita revisione:** le righe del modello si verificano contro il totale che *il modello* ha letto, non contro quello nel form — perché quando l'OCR sbaglia il totale (41,14 contro 47,74) confrontarle con quel totale le boccerebbe pur essendo giuste. Di conseguenza, se si adottano le righe si adotta anche il totale da cui sono state giudicate.
 - [x] 4.5 Si propongono le righe del modello quando quadrano e quelle locali no; se non quadra nessuno dei due, dirlo
@@ -63,6 +65,7 @@
       → `AiDisclosureText`, mostrato nella sezione **e** nella richiesta di conferma all'accensione. Dice che cosa esce, che esce solo su richiesta per un singolo scontrino che non torna, che su uno che quadra non parte nessuna chiamata, e dove sta la chiave.
 - [x] 5.4 Stato leggibile a colpo d'occhio: spenta / attiva senza chiave / attiva e pronta
       → `AiStatusText` distingue i tre stati. "Attiva senza chiave" ha un messaggio proprio perché **sembra funzionante e non lo è**, ed è l'unico dei tre che l'utente potrebbe fraintendere.
+      → **Tutti e tre visti su emulatore** nella stessa sessione: «spenta. Nessun dato degli scontrini lascia il telefono» → «attiva, ma senza chiave non può funzionare» → «attiva e pronta». Verifica e rimozione della chiave compaiono solo a chiave presente, e dopo la rimozione spariscono.
 
 ## 6. Test
 
@@ -82,10 +85,15 @@
 - [x] 7.1 `dotnet build` con 0 errori (criterio di accettazione, non opzionale)
       → 0 errori in Debug e Release; `dotnet test` 92 verdi.
 - [ ] 7.2 Verifica su emulatore con lo **stesso scontrino MD** di `receipt-items` (21 righe su 29 in locale): riportare quante righe su quante produce la rilettura e se la somma quadra — un numero, non un giudizio
+      → **Richiede una chiave API reale: non eseguibile senza.** Lo scontrino è già sull'emulatore e pronto (MD, 2 ago 2026, totale 41,14, righe 36,38). Il percorso fino all'invio è verificato: pulsante, consenso, chiamata, gestione dell'errore. Manca solo la chiamata che riesce.
 - [ ] 7.3 Verifica del costo reale di quella chiamata, confrontato con la stima dichiarata nelle impostazioni
-- [ ] 7.4 Verifica in **modalità aereo**: la rilettura fallisce con un messaggio comprensibile e lo scontrino resta salvabile con le righe locali
+      → Dipende da 7.2. La stima mostrata è **4 ¢ con Claude Opus 5**, visibile sia nel selettore del modello sia nella richiesta di consenso.
+- [x] 7.4 Verifica in **modalità aereo**: la rilettura fallisce con un messaggio comprensibile e lo scontrino resta salvabile con le righe locali
+      → Verificato su emulatore (API 36, 13 ago 2026) sullo **scontrino MD reale già salvato** — totale 41,14, righe 36,38, scarto 4,76. Con una chiave **fittizia** e la modalità aereo attiva: «Nessuna connessione. Lo scontrino resta salvabile con le righe lette in locale.» Righe, totale e categorie **intatti**.
+      Verificato anche il percorso della verifica della chiave in aereo: dice «Nessuna connessione: non è stato possibile verificarla. La chiave resta salvata.» — e **non** «chiave non valida», pur essendo la chiave palesemente finta. La rete ha la precedenza sulla validità, che è l'unica risposta onesta: è la distinzione del task 2.3 vista funzionare a runtime.
 - [x] 7.5 Verifica con funzione spenta: nessuna chiamata, nessuna menzione di costi, comportamento identico a oggi
-      → Con `AiScanEnabled` falso `CanRescanWithAi` è falso: nel percorso dello scontrino non compare il pulsante, non si nomina alcun costo e non parte nulla. La sezione nelle impostazioni resta visibile e dichiara i costi — è quanto richiede la spec `app-settings`, ed è l'unico posto dove la funzione si nomina da spenta. *(Ancora da confermare su emulatore.)*
+      → Con `AiScanEnabled` falso `CanRescanWithAi` è falso: nel percorso dello scontrino non compare il pulsante, non si nomina alcun costo e non parte nulla. La sezione nelle impostazioni resta visibile e dichiara i costi — è quanto richiede la spec `app-settings`, ed è l'unico posto dove la funzione si nomina da spenta.
+      → **Confermato su emulatore**: spenta la funzione e riaperto lo stesso scontrino, il pulsante è sparito del tutto e il form è **identico a prima della change** — stesso messaggio di quadratura, stesse righe. Con la chiave ancora salvata ma la funzione spenta lo stato dice «spenta», che è il comportamento voluto: la chiave non basta ad accendere niente.
 - [x] 7.6 Verificare che la chiave non finisca nel database, nel backup Drive, nei log né nell'interfaccia
       → Vedi 2.2 (esclusione strutturale da database e backup: `BackupService` carica solo lo snapshot SQLite) e 2.5 (audit su log, errori e interfaccia).
 - [x] 7.7 Confermare che il pacchetto **non contiene alcuna chiave**: la sola credenziale è quella che inserisce l'utente
