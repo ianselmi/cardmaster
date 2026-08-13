@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CardMaster.Data;
 using CardMaster.Services;
+using CardMaster.Services.Ai;
 using CardMaster.Services.Receipts;
 
 namespace CardMaster.ViewModels;
@@ -21,11 +22,15 @@ public sealed class ReceiptFormViewModel : ObservableObject
     private readonly ISettingsStore _settings;
     private readonly ICategoryCatalog _categories;
     private readonly IProductMappingRepository _mappings;
+    private readonly IReceiptAiReader _aiReader;
+    private readonly IAiCredentialStore _aiCredentials;
 
     private Receipt? _existing;
     private string? _pendingImagePath;
     private ReceiptVatSummary _vatSummary = ReceiptVatSummary.Empty;
     private long? _taxCents;
+    private bool _aiRescanRunning;
+    private string _aiRescanMessage = string.Empty;
 
     private string _merchantName = string.Empty;
     private string _merchantVatId = string.Empty;
@@ -41,13 +46,17 @@ public sealed class ReceiptFormViewModel : ObservableObject
         IReceiptImageStore imageStore,
         ISettingsStore settings,
         ICategoryCatalog categories,
-        IProductMappingRepository mappings)
+        IProductMappingRepository mappings,
+        IReceiptAiReader aiReader,
+        IAiCredentialStore aiCredentials)
     {
         _repository = repository;
         _imageStore = imageStore;
         _settings = settings;
         _categories = categories;
         _mappings = mappings;
+        _aiReader = aiReader;
+        _aiCredentials = aiCredentials;
 
         Items.CollectionChanged += (_, _) => UpdateBalance();
     }
@@ -290,6 +299,9 @@ public sealed class ReceiptFormViewModel : ObservableObject
         {
             BalanceIsOk = false;
             BalanceMessage = "Nessuna riga letta da questo scontrino. Puoi aggiungerle a mano.";
+            // Nessuna riga vale quanto una quadratura fallita: è l'altro caso in cui l'app sa
+            // di non aver letto lo scontrino, e in cui la rilettura ha senso.
+            OnPropertyChanged(nameof(CanRescanWithAi));
             return;
         }
 
@@ -300,6 +312,10 @@ public sealed class ReceiptFormViewModel : ObservableObject
                       balance.RateStatus != ReceiptBalanceStatus.Mismatch;
 
         BalanceMessage = BuildBalanceMessage(balance);
+
+        // La rilettura si propone solo su una quadratura fallita: quando l'utente corregge una
+        // riga e i conti tornano, la proposta deve sparire da sola.
+        OnPropertyChanged(nameof(CanRescanWithAi));
     }
 
     private static string BuildBalanceMessage(ReceiptBalance balance)
@@ -330,6 +346,258 @@ public sealed class ReceiptFormViewModel : ObservableObject
             ? $"Le righe tornano con il totale e con l'IVA: {lines}."
             : $"Le righe tornano con il totale: {lines}.";
     }
+
+    // ---- Rilettura con il modello ----------------------------------------------------------
+    //
+    // Si arriva qui SOLO dopo che la quadratura locale è fallita: è l'unico momento in cui l'app
+    // sa di avere torto, e quindi l'unico in cui vale la pena spendere soldi dell'utente e far
+    // uscire una foto dal device. Su uno scontrino che quadra non parte niente e non si propone
+    // niente — nemmeno la menzione della funzione.
+
+    /// <summary>Rilettura in corso: l'interfaccia disabilita il comando e mostra l'attesa.</summary>
+    public bool IsAiRescanRunning
+    {
+        get => _aiRescanRunning;
+        private set
+        {
+            if (SetProperty(ref _aiRescanRunning, value))
+            {
+                OnPropertyChanged(nameof(CanRescanWithAi));
+            }
+        }
+    }
+
+    /// <summary>Esito dell'ultima rilettura, o il motivo per cui non è riuscita.</summary>
+    public string AiRescanMessage
+    {
+        get => _aiRescanMessage;
+        private set
+        {
+            if (SetProperty(ref _aiRescanMessage, value))
+            {
+                OnPropertyChanged(nameof(HasAiRescanMessage));
+            }
+        }
+    }
+
+    public bool HasAiRescanMessage => AiRescanMessage.Length > 0;
+
+    /// <summary>
+    /// Se proporre la rilettura. Tutte le condizioni devono valere insieme: funzione accesa,
+    /// chiave presente, un'immagine da inviare, e una quadratura <b>fallita</b>.
+    /// </summary>
+    public bool CanRescanWithAi =>
+        _settings.AiScanEnabled
+        && _aiCredentials.IsConfigured
+        && !IsAiRescanRunning
+        && ImagePathForAi is not null
+        && !BalanceIsOk;
+
+    /// <summary>
+    /// Che cosa esce dal device, detto prima dell'invio e non scoperto dopo. La schermata lo
+    /// mostra e chiede conferma: è la foto della spesa, e dice dove si fa la spesa, quando e cosa
+    /// si mangia.
+    /// </summary>
+    public string AiRescanDisclosure =>
+        $"La foto di questo scontrino — prodotti, prezzi, esercente e data — verrà inviata " +
+        $"all'API di Anthropic con la tua chiave, a tue spese. Costo indicativo: " +
+        $"{FormatMicroCents(EstimatedCostMicroCents)} con {ReceiptAiModels.Resolve(_settings.AiScanModelId).DisplayName}.";
+
+    /// <summary>
+    /// Ordine di grandezza detto prima dell'invio. Viene dalla stessa stima mostrata nelle
+    /// impostazioni; il costo effettivo si legge dopo, dalla risposta.
+    /// </summary>
+    private long EstimatedCostMicroCents =>
+        ReceiptAiModels.EstimatedCostMicroCents(ReceiptAiModels.Resolve(_settings.AiScanModelId));
+
+    /// <summary>
+    /// L'immagine da inviare: quella appena acquisita, o quella conservata sullo scontrino già
+    /// salvato. Null quando non c'è — chi non conserva le immagini non può rileggere.
+    /// </summary>
+    private string? ImagePathForAi =>
+        _pendingImagePath ?? _imageStore.ResolveFullPath(_existing?.ImagePath);
+
+    /// <summary>
+    /// Rilegge lo scontrino con il modello e <b>confronta</b> l'esito con le righe locali.
+    /// <para>
+    /// Non sostituisce niente in silenzio: le righe rilette passano per la stessa
+    /// <see cref="ReceiptTotalsCheck"/> delle altre e prendono il posto delle locali solo quando
+    /// c'è un motivo misurabile. Un errore o un annullamento lascia tutto com'era.
+    /// </para>
+    /// </summary>
+    public async Task RescanWithAiAsync(CancellationToken cancellationToken = default)
+    {
+        // Rete di sicurezza contro una chiamata partita da uno stato ormai cambiato: se nel
+        // frattempo le righe quadrano, non si spende e non si invia niente.
+        if (!CanRescanWithAi)
+        {
+            return;
+        }
+
+        var imagePath = ImagePathForAi;
+        if (imagePath is null)
+        {
+            return;
+        }
+
+        IsAiRescanRunning = true;
+        AiRescanMessage = string.Empty;
+        try
+        {
+            byte[] bytes;
+            try
+            {
+                bytes = await File.ReadAllBytesAsync(imagePath, cancellationToken).ConfigureAwait(true);
+            }
+            catch (IOException)
+            {
+                AiRescanMessage = "L'immagine di questo scontrino non è più leggibile.";
+                return;
+            }
+
+            var result = await _aiReader.ReadAsync(bytes, cancellationToken).ConfigureAwait(true);
+            if (!result.Succeeded)
+            {
+                AiRescanMessage = DescribeError(result.Error);
+                return;
+            }
+
+            await ApplyAiReadingAsync(result.Reading!).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // Annullata dall'utente: le righe locali e le correzioni già fatte restano intatte.
+            AiRescanMessage = string.Empty;
+        }
+        finally
+        {
+            IsAiRescanRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Confronta le due letture e adotta quella del modello solo se lo merita.
+    /// <para>
+    /// Le righe del modello si verificano contro il totale che il <b>modello</b> ha letto, non
+    /// contro quello attualmente nel form: quando l'OCR sbaglia il totale — è successo, 41,14
+    /// letto al posto di 47,74 — confrontarle con quel totale le boccerebbe pur essendo giuste.
+    /// Per questo, se si adottano le righe si adotta anche il totale da cui sono state giudicate.
+    /// </para>
+    /// </summary>
+    private async Task ApplyAiReadingAsync(ReceiptAiReading reading)
+    {
+        var localBalance = ReceiptTotalsCheck.Verify(
+            Items.Select(i => i.ToLine()).ToList(),
+            ParseTotalCents(TotalText),
+            _vatSummary);
+
+        var aiTotal = reading.Header.TotalCents ?? ParseTotalCents(TotalText);
+        var aiBalance = ReceiptTotalsCheck.Verify(reading.Items, aiTotal, reading.VatSummary);
+
+        var comparison = ReceiptAiComparison.Compare(localBalance, aiBalance);
+        var cost = FormatMicroCents(_settings.LastAiScanCostMicroCents);
+
+        if (comparison.Choice == ReceiptReadingChoice.KeepLocal)
+        {
+            AiRescanMessage = $"La rilettura non ha migliorato le righe: restano quelle di prima. Costo: {cost}.";
+            return;
+        }
+
+        if (comparison.Choice == ReceiptReadingChoice.NeitherBalances && !comparison.AiIsCloser)
+        {
+            AiRescanMessage =
+                "Nemmeno la rilettura torna con il totale, e non si avvicina più di quella attuale: " +
+                $"le righe restano queste. Correggile a mano. Costo: {cost}.";
+            return;
+        }
+
+        await ReplaceItemsFromAsync(reading, aiTotal).ConfigureAwait(true);
+
+        AiRescanMessage = comparison.Choice == ReceiptReadingChoice.UseAi
+            ? $"Righe sostituite con la rilettura: adesso tornano con il totale. Costo: {cost}."
+            : "Righe sostituite con la rilettura, più vicina al totale — ma nemmeno questa torna. " +
+              $"Controllale prima di salvare. Costo: {cost}.";
+    }
+
+    /// <summary>
+    /// Sostituisce righe e testata con quelle rilette, ripassando dalla stessa classificazione in
+    /// categorie delle righe locali: l'esito del modello non salta nessun passaggio.
+    /// </summary>
+    private async Task ReplaceItemsFromAsync(ReceiptAiReading reading, long? totalCents)
+    {
+        var catalog = await _categories.GetAllAsync().ConfigureAwait(true);
+        var learned = await _mappings.GetLearnedAsync().ConfigureAwait(true);
+
+        foreach (var item in Items)
+        {
+            item.Changed -= OnItemChanged;
+        }
+
+        Items.Clear();
+        foreach (var line in reading.Items)
+        {
+            var id = CategoryMatcher.Resolve(line.RawDescription, learned, catalog);
+            Add(ReceiptItemViewModel.FromLine(line, catalog.FirstOrDefault(c => c.Id == id)?.Name));
+        }
+
+        _vatSummary = reading.VatSummary;
+        _taxCents = reading.Header.TaxCents ?? _taxCents;
+
+        if (totalCents is not null)
+        {
+            TotalText = (totalCents.Value / 100m).ToString("0.00", ReceiptListViewModel.Italian);
+        }
+
+        // I campi di testata si completano solo dove erano vuoti: quello che l'utente ha già
+        // scritto a mano vale più di quello che il modello ha letto.
+        if (MerchantName.Length == 0 && reading.Header.MerchantName is not null)
+        {
+            MerchantName = reading.Header.MerchantName;
+        }
+
+        if (MerchantVatId.Length == 0 && reading.Header.MerchantVatId is not null)
+        {
+            MerchantVatId = reading.Header.MerchantVatId;
+        }
+
+        if (!HasDate && reading.Header.PurchasedAt is not null)
+        {
+            PurchaseDate = reading.Header.PurchasedAt.Value.DateTime.Date;
+            HasDate = true;
+        }
+
+        UpdateBalance();
+    }
+
+    /// <summary>
+    /// Ogni causa d'errore con la sua indicazione su cosa fare. La chiave non compare in nessuno
+    /// di questi messaggi, e in tutti i casi lo scontrino resta salvabile con le righe locali.
+    /// </summary>
+    private static string DescribeError(AiErrorKind error) => error switch
+    {
+        AiErrorKind.NoKey =>
+            "Nessuna chiave configurata. Inseriscila in Impostazioni per usare la lettura assistita.",
+        AiErrorKind.KeyRejected =>
+            "La chiave è stata rifiutata dal servizio. Verificala in Impostazioni.",
+        AiErrorKind.CreditExhausted =>
+            "Il credito del tuo account è esaurito: non è un problema dell'app né della chiave.",
+        AiErrorKind.RateLimited =>
+            "Troppe richieste in poco tempo. Riprova tra qualche minuto.",
+        AiErrorKind.Network =>
+            "Nessuna connessione. Lo scontrino resta salvabile con le righe lette in locale.",
+        AiErrorKind.Timeout =>
+            "La rilettura ha impiegato troppo tempo. Riprova, oppure correggi le righe a mano.",
+        AiErrorKind.MalformedResponse =>
+            "La rilettura non ha prodotto un risultato utilizzabile. Le righe restano quelle di prima.",
+        _ =>
+            "La rilettura non è riuscita. Le righe restano quelle di prima.",
+    };
+
+    /// <summary>Millesimi di centesimo in un importo leggibile, senza virgola mobile fino alla fine.</summary>
+    private static string FormatMicroCents(long? microCents) =>
+        microCents is null
+            ? "sconosciuto"
+            : $"{microCents.Value / 1000m:0.###} ¢".Replace('.', ',');
 
     /// <summary>
     /// Valida il solo totale: uno scontrino senza data o senza esercente resta salvabile

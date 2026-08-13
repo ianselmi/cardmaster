@@ -23,6 +23,27 @@
                 Text="{Binding NotRecognizedMessage}"
                 Style="{StaticResource CaptionLabel}" />
 
+            <!--
+                Rilettura con il modello. Compare SOLO quando la quadratura è fallita e la
+                funzione è accesa con una chiave: su uno scontrino che torna non se ne parla
+                nemmeno, così il costo resta proporzionale al problema e non al numero di
+                scontrini. Sparisce da sola appena una correzione a mano fa tornare i conti.
+            -->
+            <Button
+                IsVisible="{Binding CanRescanWithAi}"
+                Text="Rileggi con l'AI"
+                Clicked="OnRescanWithAiClicked" />
+
+            <ActivityIndicator
+                IsVisible="{Binding IsAiRescanRunning}"
+                IsRunning="{Binding IsAiRescanRunning}"
+                HorizontalOptions="Start" />
+
+            <Label
+                IsVisible="{Binding HasAiRescanMessage}"
+                Text="{Binding AiRescanMessage}"
+                Style="{StaticResource CaptionLabel}" />
+
             <VerticalStackLayout Spacing="4">
                 <Label Text="Esercente" Style="{StaticResource CaptionLabel}" />
                 <Entry Text="{Binding MerchantName}" Placeholder="Nome del negozio" />

@@ -90,4 +90,15 @@ public static class ReceiptAiModels
     /// </summary>
     public static ReceiptAiModelOption Resolve(string? id) =>
         All.FirstOrDefault(m => m.Id == id) ?? All[0];
+
+    /// <summary>
+    /// Consumo di uno scontrino tipico: immagine ridimensionata (~2.000 token) più un JSON di una
+    /// trentina di righe (~1.200 token). Sta qui e non nell'interfaccia perché il costo mostrato
+    /// nelle impostazioni e quello mostrato prima dell'invio devono essere lo stesso numero.
+    /// </summary>
+    public static ReceiptAiUsage TypicalUsage { get; } = new(2000, 1200, string.Empty);
+
+    /// <summary>Costo indicativo di uno scontrino con questo modello, in millesimi di centesimo.</summary>
+    public static long EstimatedCostMicroCents(ReceiptAiModelOption option) =>
+        TypicalUsage.CostMicroCents(option);
 }

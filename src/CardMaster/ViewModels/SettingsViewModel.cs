@@ -1,4 +1,5 @@
 using CardMaster.Services;
+using CardMaster.Services.Ai;
 using CardMaster.Services.Backup;
 using CardMaster.Services.Receipts;
 
@@ -26,6 +27,8 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly ISettingsStore _settings;
     private readonly IReceiptImageStore _imageStore;
     private readonly IReceiptRepository _receipts;
+    private readonly IAiCredentialStore _aiCredentials;
+    private readonly IAiKeyVerifier _aiKeyVerifier;
 
     // Etichette mostrate nel Picker, nello stesso ordine dell'enum AppThemePreference.
     private static readonly string[] ThemeLabels = { "Sistema", "Chiaro", "Scuro" };
@@ -33,11 +36,15 @@ public sealed class SettingsViewModel : ObservableObject
     public SettingsViewModel(
         ISettingsStore settings,
         IReceiptImageStore imageStore,
-        IReceiptRepository receipts)
+        IReceiptRepository receipts,
+        IAiCredentialStore aiCredentials,
+        IAiKeyVerifier aiKeyVerifier)
     {
         _settings = settings;
         _imageStore = imageStore;
         _receipts = receipts;
+        _aiCredentials = aiCredentials;
+        _aiKeyVerifier = aiKeyVerifier;
     }
 
     public IReadOnlyList<string> ThemeOptions => ThemeLabels;
@@ -153,6 +160,168 @@ public sealed class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(ReceiptImagesSizeText));
         OnPropertyChanged(nameof(HasReceiptImages));
     }
+
+    // ---- Lettura assistita degli scontrini -------------------------------------------------
+
+    /// <summary>
+    /// Interruttore della funzione. <b>Spento per default</b>, ed è l'unico stato in cui nessun
+    /// dato dello scontrino può lasciare il device. Accenderlo non basta: serve anche la chiave,
+    /// e l'invio resta comunque una scelta per singolo scontrino.
+    /// </summary>
+    public bool AiScanEnabled
+    {
+        get => _settings.AiScanEnabled;
+        set
+        {
+            if (value == _settings.AiScanEnabled)
+            {
+                return;
+            }
+
+            _settings.AiScanEnabled = value;
+            OnPropertyChanged();
+            RefreshAiState();
+        }
+    }
+
+    /// <summary>Se una chiave risulta configurata. Il valore non è rileggibile: solo il fatto.</summary>
+    public bool AiKeyConfigured => _aiCredentials.IsConfigured;
+
+    /// <summary>
+    /// Stato a colpo d'occhio: spenta, attiva ma inutilizzabile, oppure pronta. La distinzione
+    /// serve perché "attiva senza chiave" sembra funzionante e non lo è.
+    /// </summary>
+    public string AiStatusText => !_settings.AiScanEnabled
+        ? "Lettura assistita spenta. Nessun dato degli scontrini lascia il telefono."
+        : _aiCredentials.IsConfigured
+            ? "Lettura assistita attiva e pronta."
+            : "Lettura assistita attiva, ma senza chiave non può funzionare: inseriscine una.";
+
+    /// <summary>
+    /// Che cosa lascia il device quando la funzione è attiva. Sta nelle impostazioni, non solo
+    /// nel momento dell'invio: chi accende deve poterlo leggere prima e rileggere dopo.
+    /// </summary>
+    public string AiDisclosureText =>
+        "Con la funzione attiva, e solo quando lo chiedi per un singolo scontrino che non torna, " +
+        "la foto di quello scontrino — prodotti, prezzi, esercente e data — viene inviata all'API " +
+        "di Anthropic usando la tua chiave e a tue spese. Su uno scontrino che quadra non parte " +
+        "nessuna chiamata. La chiave resta nell'archivio protetto del telefono: non è nel backup " +
+        "su Drive, non è nel database, e non è leggibile da qui dopo l'inserimento.";
+
+    /// <summary>Modelli selezionabili, ciascuno con il costo indicativo per scontrino accanto.</summary>
+    public IReadOnlyList<string> AiModelOptions { get; } =
+        ReceiptAiModels.All
+            .Select(m => $"{m.DisplayName} — circa {FormatMicroCents(ReceiptAiModels.EstimatedCostMicroCents(m))} a scontrino")
+            .ToList();
+
+    public string SelectedAiModel
+    {
+        get
+        {
+            var index = ReceiptAiModels.All.ToList()
+                .FindIndex(m => m.Id == ReceiptAiModels.Resolve(_settings.AiScanModelId).Id);
+            return AiModelOptions[Math.Max(0, index)];
+        }
+        set
+        {
+            var index = AiModelOptions.ToList().IndexOf(value);
+            if (index < 0 || ReceiptAiModels.All[index].Id == _settings.AiScanModelId)
+            {
+                return;
+            }
+
+            _settings.AiScanModelId = ReceiptAiModels.All[index].Id;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Costo <b>effettivo</b> dell'ultima rilettura, ricavato dal consumo riportato dalla
+    /// risposta. È il controllo della stima: se le due divergono, la stima è da rivedere.
+    /// </summary>
+    public string AiLastCostText
+    {
+        get
+        {
+            if (_settings.LastAiScanCostMicroCents is not { } cost)
+            {
+                return "Nessuna rilettura ancora effettuata.";
+            }
+
+            var input = _settings.LastAiScanInputTokens ?? 0;
+            var output = _settings.LastAiScanOutputTokens ?? 0;
+            return $"Ultima rilettura: {FormatMicroCents(cost)} ({input} token in ingresso, {output} in uscita).";
+        }
+    }
+
+    /// <summary>
+    /// Conserva la chiave digitata. Non la verifica: la verifica è un'azione separata, così
+    /// l'utente può salvarla anche senza rete e provarla dopo.
+    /// </summary>
+    public async Task<bool> SetAiKeyAsync(string apiKey)
+    {
+        var saved = await _aiCredentials.SetKeyAsync(apiKey).ConfigureAwait(true);
+        RefreshAiState();
+        return saved;
+    }
+
+    /// <summary>
+    /// Rimuove la chiave. Le funzioni che la richiedono tornano indisponibili; gli scontrini
+    /// già salvati non vengono toccati.
+    /// </summary>
+    public async Task RemoveAiKeyAsync()
+    {
+        await _aiCredentials.RemoveKeyAsync().ConfigureAwait(true);
+        RefreshAiState();
+    }
+
+    /// <summary>
+    /// Prova la chiave conservata e restituisce un messaggio comprensibile. Distingue una chiave
+    /// rifiutata da un problema di rete: nel secondo caso non sappiamo se la chiave sia buona.
+    /// </summary>
+    public async Task<string> VerifyAiKeyAsync()
+    {
+        var key = await _aiCredentials.GetKeyAsync().ConfigureAwait(true);
+        if (string.IsNullOrEmpty(key))
+        {
+            RefreshAiState();
+            return "Nessuna chiave configurata.";
+        }
+
+        var result = await _aiKeyVerifier.VerifyAsync(key).ConfigureAwait(true);
+        return result.Valid
+            ? "Chiave valida: il servizio l'ha accettata."
+            : result.Error switch
+            {
+                AiErrorKind.KeyRejected => "Chiave rifiutata dal servizio. Controlla di averla incollata per intero.",
+                AiErrorKind.CreditExhausted => "La chiave è valida, ma il credito dell'account è esaurito.",
+                AiErrorKind.RateLimited => "Troppe richieste in poco tempo. Riprova tra qualche minuto.",
+                AiErrorKind.Network => "Nessuna connessione: non è stato possibile verificarla. La chiave resta salvata.",
+                AiErrorKind.Timeout => "Il servizio non ha risposto in tempo. Riprova.",
+                _ => "Verifica non riuscita. Riprova più tardi.",
+            };
+    }
+
+    private void RefreshAiState()
+    {
+        OnPropertyChanged(nameof(AiKeyConfigured));
+        OnPropertyChanged(nameof(AiStatusText));
+    }
+
+    /// <summary>Ricarica lo stato della lettura assistita quando la pagina torna in primo piano.</summary>
+    public void RefreshAiSection()
+    {
+        RefreshAiState();
+        OnPropertyChanged(nameof(AiScanEnabled));
+        OnPropertyChanged(nameof(AiLastCostText));
+    }
+
+    /// <summary>
+    /// Millesimi di centesimo in un importo leggibile. Sotto il centesimo si scrive comunque il
+    /// valore invece di arrotondare a zero: "0 ¢" farebbe sembrare la funzione gratuita.
+    /// </summary>
+    private static string FormatMicroCents(long microCents) =>
+        $"{microCents / 1000m:0.###} ¢".Replace('.', ',');
 
     private static string FormatSize(long bytes) => bytes switch
     {

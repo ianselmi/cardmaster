@@ -49,6 +49,33 @@
                     Clicked="OnClearReceiptImagesClicked" />
             </VerticalStackLayout>
 
+            <!--
+                Lettura assistita: l'unica funzione dell'app che fa uscire un dato dal device.
+                Nasce spenta, e ciò che esce è dichiarato qui — prima di accenderla, non dopo.
+            -->
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Lettura assistita degli scontrini" Style="{StaticResource CaptionLabel}" />
+
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Grid.Column="0" Text="Rileggi con l'AI gli scontrini che non tornano" VerticalOptions="Center" />
+                    <Switch Grid.Column="1" IsToggled="{Binding AiScanEnabled}" Toggled="OnAiScanToggled" />
+                </Grid>
+
+                <Label Text="{Binding AiStatusText}" Style="{StaticResource CaptionLabel}" />
+                <Label Text="{Binding AiDisclosureText}" Style="{StaticResource CaptionLabel}" />
+
+                <Picker
+                    ItemsSource="{Binding AiModelOptions}"
+                    SelectedItem="{Binding SelectedAiModel}"
+                    Title="Modello" />
+
+                <Button Text="Inserisci la chiave" Clicked="OnSetAiKeyClicked" />
+                <Button Text="Verifica la chiave" IsVisible="{Binding AiKeyConfigured}" Clicked="OnVerifyAiKeyClicked" />
+                <Button Text="Rimuovi la chiave" IsVisible="{Binding AiKeyConfigured}" Clicked="OnRemoveAiKeyClicked" />
+
+                <Label Text="{Binding AiLastCostText}" Style="{StaticResource CaptionLabel}" />
+            </VerticalStackLayout>
+
             <VerticalStackLayout Spacing="4">
                 <Label Text="Aggiornamenti" Style="{StaticResource CaptionLabel}" />
                 <Button Text="Controllo aggiornamenti" Clicked="OnUpdateClicked" />
