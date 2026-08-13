@@ -31,6 +31,12 @@ public sealed class SettingsStore : ISettingsStore
     private const string LastAiScanOutputTokensKey = "ai_scan_last_output_tokens";
     private const string LastAiScanCostMicroCentsKey = "ai_scan_last_cost_microcents";
 
+    /// <summary>
+    /// Sottoscrizioni <b>deboli</b>: questo store è un singleton e i ViewModel che lo ascoltano
+    /// sono transienti, quindi un handler forte li terrebbe in vita per tutta la sessione.
+    /// </summary>
+    private readonly WeakEventManager _aiUsageEvents = new();
+
     public AppThemePreference Theme
     {
         get
@@ -209,20 +215,42 @@ public sealed class SettingsStore : ISettingsStore
     public long? LastAiScanInputTokens
     {
         get => GetNullableLong(LastAiScanInputTokensKey);
-        set => SetNullableLong(LastAiScanInputTokensKey, value);
+        set
+        {
+            SetNullableLong(LastAiScanInputTokensKey, value);
+            RaiseAiUsageChanged();
+        }
     }
 
     public long? LastAiScanOutputTokens
     {
         get => GetNullableLong(LastAiScanOutputTokensKey);
-        set => SetNullableLong(LastAiScanOutputTokensKey, value);
+        set
+        {
+            SetNullableLong(LastAiScanOutputTokensKey, value);
+            RaiseAiUsageChanged();
+        }
     }
 
     public long? LastAiScanCostMicroCents
     {
         get => GetNullableLong(LastAiScanCostMicroCentsKey);
-        set => SetNullableLong(LastAiScanCostMicroCentsKey, value);
+        set
+        {
+            SetNullableLong(LastAiScanCostMicroCentsKey, value);
+            RaiseAiUsageChanged();
+        }
     }
+
+    /// <inheritdoc />
+    public event EventHandler AiUsageChanged
+    {
+        add => _aiUsageEvents.AddEventHandler(value);
+        remove => _aiUsageEvents.RemoveEventHandler(value);
+    }
+
+    private void RaiseAiUsageChanged() =>
+        _aiUsageEvents.HandleEvent(this, EventArgs.Empty, nameof(AiUsageChanged));
 
     private static long? GetNullableLong(string key) =>
         Preferences.Default.ContainsKey(key) ? Preferences.Default.Get(key, 0L) : null;
