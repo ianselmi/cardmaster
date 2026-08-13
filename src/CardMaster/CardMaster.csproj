@@ -72,6 +72,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Lettura assistita degli scontrini: SDK ufficiale Anthropic.
+		     La chiave API è dell'utente e vive in SecureStorage: nessuna credenziale
+		     nel pacchetto o nel repository (vedi openspec/specs/ai-credentials). -->
+		<PackageReference Include="Anthropic" Version="12.40.0" />
 		<PackageReference Include="BarcodeScanning.Native.Maui" Version="3.0.6" />
 		<!-- OCR scontrini: ML Kit Text Recognition con modello INCLUSO nell'APK (com.google.mlkit),
 		     non la variante play-services che lo scarica al primo uso: serve il riconoscimento

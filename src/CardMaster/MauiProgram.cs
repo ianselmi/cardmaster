@@ -1,5 +1,6 @@
 using BarcodeScanning;
 using CardMaster.Services;
+using CardMaster.Services.Ai;
 using CardMaster.Services.Backup;
 using CardMaster.Services.Receipts;
 using CardMaster.Services.Update;
@@ -86,6 +87,13 @@ public static class MauiProgram
 		services.AddSingleton<IDriveBackupClient, DriveBackupClient>();
 		services.AddSingleton<IBackupEnvironment, MauiBackupEnvironment>();
 		services.AddSingleton<IBackupService, BackupService>();
+
+		// Lettura assistita degli scontrini: la chiave è dell'utente e sta in SecureStorage,
+		// non in Preferences e non nel database — quindi resta fuori dal backup su Drive,
+		// che carica il solo snapshot del file SQLite.
+		services.AddSingleton<IAiCredentialStore, AiCredentialStore>();
+		services.AddSingleton<IAiKeyVerifier, AnthropicKeyVerifier>();
+		services.AddSingleton<IReceiptAiReader, AnthropicReceiptAiReader>();
 
 		// Navigazione / UI
 		services.AddSingleton<AppShell>();
