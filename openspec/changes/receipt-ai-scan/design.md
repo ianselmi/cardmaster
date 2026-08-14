@@ -62,13 +62,29 @@ Conseguenza dichiarata: l'utente deve procurarsi una chiave. È un attrito vero,
 
 Il default è `claude-opus-5` — è il caso in cui la lettura conta più del costo, visto che si arriva qui solo dopo un fallimento. L'utente può scegliere un modello più economico, con il costo per scontrino dichiarato accanto:
 
-| Modello | Prezzo (in / out per milione di token) | Ordine di grandezza per scontrino |
+| Modello | Prezzo (in / out per milione di token) | Costo per scontrino |
 |---|---|---|
-| `claude-opus-5` (default) | $5 / $25 | ~4 centesimi |
-| `claude-sonnet-5` | $3 / $15 | ~2,5 centesimi |
-| `claude-haiku-4-5` | $1 / $5 | meno di 1 centesimo |
+| `claude-opus-5` (default) | $5 / $25 | **12,05 ¢** |
+| `claude-sonnet-5` | $3 / $15 | 7,23 ¢ |
+| `claude-haiku-4-5` | $1 / $5 | 2,41 ¢ |
 
-La stima assume un'immagine ridimensionata (~2.000 token), un prompt breve e un JSON di trenta righe (~1.200 token in uscita). Va **verificata sui token reali** con il conteggio restituito dalla risposta, non lasciata come promessa.
+I costi sono **misurati**, non stimati: 3.578 token in ingresso e 4.110 in uscita sullo scontrino MD da 29 righe (emulatore, 13 ago 2026). La stima a tavolino di questo documento — 2.000 in ingresso e 1.200 in uscita, cioè ~4 centesimi con Opus — era **tre volte sotto**, e sbagliava soprattutto sull'uscita: un JSON di 29 righe con descrizione, quantità, unità, prezzo unitario, importo e aliquota costa molto più di quanto sembri contando le righe. Da rimisurare su scontrini più corti: 29 righe sono un caso grande, non medio.
+
+#### Perché il default resta Opus 5, misurato
+
+Il default è stato messo alla prova sullo stesso scontrino, con la stessa immagine e lo stesso schema:
+
+| | Opus 5 | Haiku 4.5 |
+|---|---|---|
+| Righe | **29 su 29** | non quadra |
+| Quadratura | **47,74 € esatti** | fallita, scarto ≥ 6,60 € |
+| Costo reale | 12,064 ¢ | 1,322 ¢ |
+
+Haiku costa un decimo e non fa il lavoro: su un totale di 47,74 € ha sbagliato di almeno 6,60 €, cioè non un arrotondamento ma una lettura diversa. Ha anche speso **meno della sua stima** (1,32 contro 2,41 ¢) perché ha prodotto meno output — coerente con l'aver mancato delle righe.
+
+Il ragionamento originale regge quindi anche sui numeri: qui ci si arriva **solo dopo** un fallimento della lettura locale, quindi si sta già pagando un errore, e un default che fallisce anche lui lascerebbe l'utente con una rilettura pagata e inutile — su cui concluderebbe, ragionevolmente, che la funzione non serve. Haiku resta selezionabile per chi preferisce spendere meno sapendo cosa rischia.
+
+Non misurato: `claude-sonnet-5`. Se un giorno il default dovesse cambiare per costo, è lì che va guardato prima — non su Haiku.
 
 ### L'immagine si ridimensiona prima di inviarla
 
