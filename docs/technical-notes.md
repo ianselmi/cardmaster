@@ -77,7 +77,8 @@ lista non scorre più.
 
 ## OCR degli scontrini (ML Kit Text Recognition)
 
-> Origine: `receipt-capture` (11 ago 2026), tutte verificate su emulatore.
+> Origine: `receipt-capture` (11 ago 2026), tutte verificate su emulatore; la nota sulla curvatura
+> viene da `receipt-items` (14 ago 2026).
 
 ### ML Kit non restituisce le righe: restituisce colonne
 `Text.GetText()` concatena i **blocchi**, non le righe visive. Su uno scontrino a colonne questo
@@ -90,6 +91,34 @@ La riga visiva va ricostruita dalla geometria (`Text.TextBlock` → `Line` → `
 raggruppare i frammenti per banda verticale (sovrapposizione ≥ 50% dell'altezza minore) e
 ordinarli per `x`. È `Services/Receipts/ReceiptTextLayout.cs`. Conservare il testo **ricostruito**,
 non il grezzo: è l'unico ri-parsabile.
+
+### Uno scontrino fotografato non è inclinato: è incurvato
+Raddrizzare con **una sola pendenza** per tutta la foto funziona finché la carta è piana, e la carta
+quasi mai lo è: appoggiata sul tavolo si arriccia, e la pendenza del centro non è quella delle
+estremità. La mediana generale prende la pendenza del centro, e in cima e in fondo l'importo scivola
+di mezza riga fino ad **appaiarsi al prodotto successivo**, che perde così il proprio. È il difetto
+che ha lasciato 21 righe su 29 sullo scontrino MD reale.
+
+La correzione è in due tempi (`Services/Receipts/ReceiptTextLayout.cs`): una pendenza generale, poi
+una **residua per fascia**, interpolata fra i centri delle fasce — non costante a gradini, o due
+frammenti della stessa riga a cavallo di un confine riceverebbero correzioni diverse e la riga si
+spezzerebbe proprio dove il rimedio doveva ricomporla. Due trappole, entrambe misurate:
+
+- **Allentare la tolleranza verticale sulle coppie da cui si stima la pendenza peggiora la stima.**
+  Sembra sensato (le righe più deformate cadono fuori dal limite), ma su una riga inclinata verso il
+  basso è l'importo della riga *successiva* a risalire dentro la tolleranza: entra come coppia con il
+  segno opposto e trascina la mediana verso lo zero. Con la tolleranza allentata le fasce stimavano
+  `-0,012` e `+0,006` dove il vero era `-0,045` e `+0,045`.
+- **La stima di fascia va ripetuta, quella generale no.** La fascia sottostima al primo giro perché
+  esclude proprio le righe da correggere; ogni passata le fa rientrare nella tolleranza e la
+  successiva le vede (quattro bastano). La stessa iterazione sulla pendenza *generale* invece
+  danneggia: su uno scontrino incurvato converge verso l'inclinazione di una metà e raddrizzando
+  l'altra la peggiora.
+
+Campo di validità misurato sullo scontrino MD sintetico a 29 righe: fino a ~4,5° di inclinazione
+(`slope` 0,08) la ricostruzione è completa **per qualunque curvatura provata**, fino a 0,18. A ~8,5°
+(`slope` 0,15) cede, ma cede già la lettura del totale: lo scontrino è comunque da rifotografare o
+da rileggere con `receipt-ai-scan`.
 
 ### L'OCR spezza i gruppi di cifre
 Visti nella stessa prova: `11/08/ 2026` (spazio dopo la barra) e `-0, 50` (spazio dopo la virgola).

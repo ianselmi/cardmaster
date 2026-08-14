@@ -151,4 +151,46 @@ public class ReceiptTextLayoutTests
         Assert.DoesNotContain(lines, l => l.Contains("PRIMO", StringComparison.Ordinal) &&
                                           l.Contains("QUARTO", StringComparison.Ordinal));
     }
+
+    /// <summary>
+    /// Scontrino <b>incurvato</b>: la carta non è appoggiata piana, quindi la pendenza cambia
+    /// lungo la foto. Nessuna pendenza unica raddrizza cima e fondo insieme — quella del centro
+    /// lascia le estremità storte, ed è lì che il prezzo si stacca dalla sua descrizione.
+    /// <para>
+    /// Qui la pendenza va da <c>-0,09</c> in cima a <c>+0,09</c> in fondo: a 320 pixel di
+    /// distanza fra le due colonne sono quasi 29 pixel di scarto, cioè una riga intera.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Scontrino_incurvato_tiene_insieme_descrizione_e_prezzo()
+    {
+        const int rowCount = 30;
+        const double height = rowCount * 30.0;
+        var fragments = new List<OcrLine>();
+
+        for (var i = 0; i < rowCount; i++)
+        {
+            var y = i * 30.0;
+            // La pendenza locale passa con continuità da -0,09 a +0,09 dalla cima al fondo.
+            var slope = 0.09 * (((y / height) * 2) - 1);
+
+            OcrLine Warped(string text, double x, double width) =>
+                new(text, new Rect(x, y + (slope * (x + (width / 2))), width, 18));
+
+            fragments.Add(Warped($"PRODOTTO {i:00}", 10, 220));
+            fragments.Add(Warped($"{i + 1},00", 330, 55));
+        }
+
+        // Come li restituisce ML Kit: prima tutta la colonna delle descrizioni, poi quella dei
+        // prezzi. L'accoppiamento può venire solo dalla geometria.
+        var byColumn = fragments.OrderBy(f => f.Bounds.Left).ThenBy(f => f.Bounds.Top).ToList();
+        var lines = ReceiptTextLayout.ToVisualLines(
+            new OcrResult("", [Block([.. byColumn])]));
+
+        Assert.Equal(rowCount, lines.Count);
+        for (var i = 0; i < rowCount; i++)
+        {
+            Assert.Equal($"PRODOTTO {i:00}  {i + 1},00", lines[i]);
+        }
+    }
 }
