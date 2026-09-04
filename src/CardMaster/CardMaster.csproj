@@ -81,8 +81,12 @@
 		     non la variante play-services che lo scarica al primo uso: serve il riconoscimento
 		     funzionante al primo avvio senza rete e senza dipendere dai Play Services del device
 		     (distribuzione fuori dal Play Store). Prezzo: qualche MB di APK. -->
-		<PackageReference Include="Xamarin.Google.MLKit.TextRecognition" Version="116.0.1.9" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.100" />
+		<PackageReference Include="Xamarin.Google.MLKit.TextRecognition" Version="116.0.1.8" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
+		<!-- 10.0.100 porta AndroidX Fragment 1.9.0, incompatibile con
+		     Fragment.Ktx 1.8.9.3 usato da BarcodeScanning.Native.Maui 3.1.0:
+		     R8 genera una classe FragmentKt duplicata. Manteniamo la linea
+		     MAUI precedente finché BarcodeScanning non allinea AndroidX. -->
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.90" />
 		<!-- Backup su Google Drive: schedulazione periodica in background -->
 		<PackageReference Include="Xamarin.AndroidX.Work.Runtime" Version="2.11.2.1" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.11" />
