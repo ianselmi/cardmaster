@@ -71,7 +71,7 @@ public static class ReceiptAiModels
     /// Default. È il caso in cui la lettura conta più del costo: qui ci si arriva <b>solo dopo</b>
     /// che la quadratura locale è fallita, quindi si sta già pagando un errore.
     /// </summary>
-    public const string DefaultModelId = "claude-opus-5";
+    public const string DefaultModelId = "gpt-5.2";
 
     /// <summary>
     /// Listino in dollari per milione di token, convertito in millesimi di centesimo:
@@ -79,9 +79,8 @@ public static class ReceiptAiModels
     /// </summary>
     public static IReadOnlyList<ReceiptAiModelOption> All { get; } =
     [
-        new("claude-opus-5", "Claude Opus 5", 500_000, 2_500_000),
-        new("claude-sonnet-5", "Claude Sonnet 5", 300_000, 1_500_000),
-        new("claude-haiku-4-5", "Claude Haiku 4.5", 100_000, 500_000),
+        new("gpt-5.2", "GPT-5.2", 175_000, 140_000),
+        new("gpt-5-mini", "GPT-5 mini", 025_000, 200_000),
     ];
 
     /// <summary>

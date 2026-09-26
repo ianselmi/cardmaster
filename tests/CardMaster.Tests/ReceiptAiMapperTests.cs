@@ -13,7 +13,7 @@ namespace CardMaster.Tests;
 /// </summary>
 public class ReceiptAiMapperTests
 {
-    private static readonly ReceiptAiUsage NoUsage = new(0, 0, "claude-opus-5");
+    private static readonly ReceiptAiUsage NoUsage = new(0, 0, "gpt-5.2");
 
     /// <summary>Riferimento fisso: l'offset locale della macchina non deve cambiare l'esito.</summary>
     private static readonly DateTimeOffset Now = new(2026, 8, 13, 10, 0, 0, TimeSpan.FromHours(2));
@@ -135,7 +135,7 @@ public class ReceiptAiMapperTests
     [Fact]
     public void Il_consumo_effettivo_viene_riportato()
     {
-        var usage = new ReceiptAiUsage(2000, 1200, "claude-opus-5");
+        var usage = new ReceiptAiUsage(2000, 1200, "gpt-5.2");
 
         var reading = ReceiptAiMapper.Map(ScontrinoCompleto, usage, Now).Reading!;
 
@@ -146,7 +146,7 @@ public class ReceiptAiMapperTests
     [Fact]
     public void Costo_effettivo_calcolato_dal_listino_del_modello()
     {
-        var opus = ReceiptAiModels.Resolve("claude-opus-5");
+        var opus = ReceiptAiModels.Resolve("gpt-5.2");
         var usage = new ReceiptAiUsage(2000, 1200, opus.Id);
 
         // 2000 token in ingresso a $5/milione + 1200 in uscita a $25/milione = 4 centesimi circa.

@@ -44,7 +44,7 @@ internal sealed partial class ReceiptAiJsonContext : JsonSerializerContext
 }
 
 /// <summary>
-/// Schema della risposta, <b>imposto</b> nella richiesta via <c>output_config.format</c> e non
+/// Schema della risposta, <b>imposto</b> nella richiesta via <c>response_format</c> e non
 /// chiesto nel prompt e sperato. Il parsing a valle non è difensivo perché non deve esserlo: se
 /// lo schema è rispettato i campi ci sono e sono del tipo giusto.
 /// <para>

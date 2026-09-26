@@ -53,11 +53,11 @@ public partial class SettingsPage : ContentPage
         // La chiave si incolla, non si rilegge: qui non si mostra mai quella già configurata.
         var key = await DisplayPromptAsync(
             "Chiave API",
-            "Incolla la tua chiave di Anthropic. Resta nell'archivio protetto del telefono e non " +
+            "Incolla la tua chiave API OpenAI. Resta nell'archivio protetto del telefono e non " +
             "sarà più visibile da qui.",
             accept: "Salva",
             cancel: "Annulla",
-            placeholder: "sk-ant-...",
+            placeholder: "sk-...",
             maxLength: 200);
 
         if (string.IsNullOrWhiteSpace(key))

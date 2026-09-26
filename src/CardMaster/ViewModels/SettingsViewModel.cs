@@ -212,7 +212,7 @@ public sealed class SettingsViewModel : ObservableObject
     public string AiDisclosureText =>
         "Con la funzione attiva, e solo quando lo chiedi per un singolo scontrino che non torna, " +
         "la foto di quello scontrino — prodotti, prezzi, esercente e data — viene inviata all'API " +
-        "di Anthropic usando la tua chiave e a tue spese. Su uno scontrino che quadra non parte " +
+        "di OpenAI usando la tua chiave e a tue spese. Su uno scontrino che quadra non parte " +
         "nessuna chiamata. La chiave resta nell'archivio protetto del telefono: non è nel backup " +
         "su Drive, non è nel database, e non è leggibile da qui dopo l'inserimento.";
 
