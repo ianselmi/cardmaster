@@ -16,7 +16,7 @@ namespace CardMaster.Services.Ai;
 /// </remarks>
 public sealed class AiCredentialStore : IAiCredentialStore
 {
-    private const string ApiKeyEntry = "anthropic_api_key";
+    private const string ApiKeyEntry = "openai_api_key";
     private const string ConfiguredFlagKey = "ai_key_configured";
 
     public bool IsConfigured => Preferences.Default.Get(ConfiguredFlagKey, false);

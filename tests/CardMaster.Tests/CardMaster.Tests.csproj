@@ -53,7 +53,7 @@
     <Compile Include="../../src/CardMaster/Data/ProductCategory.cs" Link="SourceUnderTest/ProductCategory.cs" />
     <Compile Include="../../src/CardMaster/Services/Receipts/CategoryMatcher.cs" Link="SourceUnderTest/CategoryMatcher.cs" />
     <!-- Mappatura dell'esito del modello: unità del dominio e rifiuto delle risposte non
-         conformi. Collegabile perché è logica pura — l'SDK Anthropic sta nel reader, non qui. -->
+         conformi. Collegabile perché è logica pura — il client OpenAI sta nel reader, non qui. -->
     <Compile Include="../../src/CardMaster/Services/Ai/AiModels.cs" Link="SourceUnderTest/AiModels.cs" />
     <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptAiModels.cs" Link="SourceUnderTest/ReceiptAiModels.cs" />
     <Compile Include="../../src/CardMaster/Services/Receipts/ReceiptAiJson.cs" Link="SourceUnderTest/ReceiptAiJson.cs" />

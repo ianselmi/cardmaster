@@ -400,7 +400,7 @@ public sealed class ReceiptFormViewModel : ObservableObject
     /// </summary>
     public string AiRescanDisclosure =>
         $"La foto di questo scontrino — prodotti, prezzi, esercente e data — verrà inviata " +
-        $"all'API di Anthropic con la tua chiave, a tue spese. Costo indicativo: " +
+        $"all'API OpenAI con la tua chiave, a tue spese. Costo indicativo: " +
         $"{FormatMicroCents(EstimatedCostMicroCents)} con {ReceiptAiModels.Resolve(_settings.AiScanModelId).DisplayName}.";
 
     /// <summary>

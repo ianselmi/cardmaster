@@ -77,7 +77,7 @@ public interface ISettingsStore
     /// </summary>
     bool AiScanEnabled { get; set; }
 
-    /// <summary>Identificativo del modello scelto. Default <c>claude-opus-5</c>.</summary>
+    /// <summary>Identificativo del modello scelto. Default <c>gpt-5.2</c>.</summary>
     string AiScanModelId { get; set; }
 
     /// <summary>Token in ingresso dell'ultima rilettura; null se mai eseguita.</summary>
