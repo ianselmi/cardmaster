@@ -5,18 +5,31 @@ using System.Text.Json;
 
 namespace CardMaster.Services.Ai;
 
-public sealed class OpenAiApiClient : IOpenAiClient
+public sealed class OpenAiClientFactory : IAClientFactory
+{
+    private readonly HttpClient _httpClient;
+    public OpenAiClientFactory(HttpClient httpClient) => _httpClient = httpClient;
+    public IAClient Create(AClientConfiguration configuration) => new OpenAiClient(configuration, _httpClient);
+}
+
+public sealed class OpenAiClient : IAClient
 {
     private static readonly TimeSpan VerifyTimeout = TimeSpan.FromSeconds(20);
+    private readonly AClientConfiguration _configuration;
     private readonly HttpClient _httpClient;
-    public OpenAiApiClient(HttpClient httpClient) => _httpClient = httpClient;
 
-    public async Task<AiKeyCheckResult> VerifyKeyAsync(string apiKey, CancellationToken cancellationToken = default)
+    public OpenAiClient(AClientConfiguration configuration, HttpClient httpClient)
     {
-        if (string.IsNullOrWhiteSpace(apiKey)) return AiKeyCheckResult.Failed(AiErrorKind.NoKey);
+        _configuration = configuration;
+        _httpClient = httpClient;
+    }
+
+    public async Task<AiKeyCheckResult> VerifyKeyAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_configuration.ApiKey)) return AiKeyCheckResult.Failed(AiErrorKind.NoKey);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(VerifyTimeout);
-        using var request = CreateRequest(HttpMethod.Get, "https://api.openai.com/v1/models", apiKey);
+        using var request = CreateRequest(HttpMethod.Get, "https://api.openai.com/v1/models");
         try
         {
             using var response = await _httpClient.SendAsync(request, timeout.Token).ConfigureAwait(false);
@@ -25,9 +38,9 @@ public sealed class OpenAiApiClient : IOpenAiClient
         catch (Exception ex) { return AiKeyCheckResult.Failed(MapException(ex, cancellationToken, timeout.Token)); }
     }
 
-    public async Task<OpenAiChatResult> CompleteChatAsync(string apiKey, string model, string requestBody, CancellationToken cancellationToken = default)
+    public async Task<OpenAiChatResult> CompleteChatAsync(string model, string requestBody, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, "https://api.openai.com/v1/chat/completions", apiKey);
+        using var request = CreateRequest(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
         request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
         try
         {
@@ -45,10 +58,10 @@ public sealed class OpenAiApiClient : IOpenAiClient
         catch (Exception ex) { return OpenAiChatResult.Failed(MapException(ex, cancellationToken, cancellationToken)); }
     }
 
-    private static HttpRequestMessage CreateRequest(HttpMethod method, string uri, string key)
+    private HttpRequestMessage CreateRequest(HttpMethod method, string uri)
     {
         var request = new HttpRequestMessage(method, uri);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key.Trim());
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _configuration.ApiKey.Trim());
         return request;
     }
 

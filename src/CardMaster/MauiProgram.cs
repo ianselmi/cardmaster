@@ -92,7 +92,7 @@ public static class MauiProgram
 		// non in Preferences e non nel database — quindi resta fuori dal backup su Drive,
 		// che carica il solo snapshot del file SQLite.
 		services.AddSingleton<IAiCredentialStore, AiCredentialStore>();
-		services.AddSingleton<IOpenAiClient, OpenAiApiClient>();
+		services.AddSingleton<IAClientFactory, OpenAiClientFactory>();
 		services.AddSingleton<IAiKeyVerifier, OpenAiKeyVerifier>();
 		services.AddSingleton<IReceiptAiReader, OpenAiReceiptAiReader>();
 

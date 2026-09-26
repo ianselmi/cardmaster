@@ -9,13 +9,13 @@ public sealed class OpenAiReceiptAiReader : IReceiptAiReader
     private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(2);
     private readonly IAiCredentialStore _credentials;
     private readonly ISettingsStore _settings;
-    private readonly IOpenAiClient _client;
+    private readonly IAClientFactory _clients;
 
-    public OpenAiReceiptAiReader(IAiCredentialStore credentials, ISettingsStore settings, IOpenAiClient client)
+    public OpenAiReceiptAiReader(IAiCredentialStore credentials, ISettingsStore settings, IAClientFactory clients)
     {
         _credentials = credentials;
         _settings = settings;
-        _client = client;
+        _clients = clients;
     }
 
     public async Task<ReceiptAiResult> ReadAsync(byte[] imageBytes, CancellationToken cancellationToken = default)
@@ -27,7 +27,8 @@ public sealed class OpenAiReceiptAiReader : IReceiptAiReader
         var option = ReceiptAiModels.Resolve(_settings.AiScanModelId);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(Timeout);
-        var response = await _client.CompleteChatAsync(apiKey, option.Id, OpenAiRequestBody.Build(option.Id, MaxOutputTokens, downscaled), timeout.Token).ConfigureAwait(false);
+        var client = _clients.Create(new AClientConfiguration(apiKey));
+        var response = await client.CompleteChatAsync(option.Id, OpenAiRequestBody.Build(option.Id, MaxOutputTokens, downscaled), timeout.Token).ConfigureAwait(false);
         if (!response.Succeeded || response.Content is null) return ReceiptAiResult.Failed(response.Error);
         var usage = new ReceiptAiUsage(response.InputTokens, response.OutputTokens, option.Id);
         var result = ReceiptAiMapper.Map(response.Content, usage);

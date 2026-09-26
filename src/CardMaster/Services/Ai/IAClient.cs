@@ -1,9 +1,16 @@
 namespace CardMaster.Services.Ai;
 
-public interface IOpenAiClient
+public sealed record AClientConfiguration(string ApiKey);
+
+public interface IAClient
 {
-    Task<OpenAiChatResult> CompleteChatAsync(string apiKey, string model, string requestBody, CancellationToken cancellationToken = default);
-    Task<AiKeyCheckResult> VerifyKeyAsync(string apiKey, CancellationToken cancellationToken = default);
+    Task<OpenAiChatResult> CompleteChatAsync(string model, string requestBody, CancellationToken cancellationToken = default);
+    Task<AiKeyCheckResult> VerifyKeyAsync(CancellationToken cancellationToken = default);
+}
+
+public interface IAClientFactory
+{
+    IAClient Create(AClientConfiguration configuration);
 }
 
 public sealed record OpenAiChatResult(bool Succeeded, string? Content, long InputTokens, long OutputTokens, AiErrorKind Error)
