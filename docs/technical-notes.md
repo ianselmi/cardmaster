@@ -36,9 +36,9 @@ non usare `sqlite-net-pcl` (trascina un secondo provider e crea ambiguità sul p
 Usare **`SQLite3MC.PCLRaw.bundle`** (SQLite3 Multiple Ciphers, di utelle) — mantenuto e gratuito,
 supporta la cifratura via `PRAGMA key`. NON riusare `bundle_e_sqlcipher` (deprecato).
 
-### minSdk Android 23
-`SupportedOSPlatformVersion` per android è `23.0` (Android 6.0): un minimo moderno ragionevole
-(in origine richiesto dalle API Keystore, ora rimosse; lasciato invariato).
+### minSdk Android 24
+`SupportedOSPlatformVersion` per Android è `24.0` (Android 7.0), minimo richiesto da
+`Xamarin.AndroidX.Work.Runtime 2.12.0`. Alzato da API 23 con l'aggiornamento NuGet del 30 ottobre 2026.
 
 ---
 
@@ -155,6 +155,13 @@ Per la barra di navigazione **in basso** serve racchiuderli in un `<TabBar>`. Se
 flyout con l'icona a panino in alto a sinistra. *(Origine: `receipt-capture`, 11 ago 2026.)*
 
 ## Build Android — trappole
+
+### Fragment e Fragment.Ktx devono usare la stessa linea
+MAUI 10.0.120 e ML Kit TextRecognition 116.0.1.9 risolvono AndroidX Fragment 1.9.0,
+ma BarcodeScanning.Native.Maui 3.1.0 richiede ancora Fragment.Ktx 1.8.9.3. NuGet segnala
+`NU1608` e D8/R8 fallisce con `FragmentKt is defined multiple times`. Il riferimento
+esplicito a `Xamarin.AndroidX.Fragment.Ktx 1.9.0` allinea le dipendenze senza annullare
+gli aggiornamenti di MAUI e ML Kit.
 
 ### Crash a `Theme.MaterialComponents` dopo build incrementali: pulire `obj/`
 Sintomo: l'app crasha all'avvio, prima di mostrare qualunque pagina, con
