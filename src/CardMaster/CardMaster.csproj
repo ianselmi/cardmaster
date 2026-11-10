@@ -81,13 +81,13 @@
 		     funzionante al primo avvio senza rete e senza dipendere dai Play Services del device
 		     (distribuzione fuori dal Play Store). Prezzo: qualche MB di APK. -->
 		<PackageReference Include="Xamarin.Google.MLKit.TextRecognition" Version="116.0.1.9" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
-		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.120" />
-		<!-- MAUI e ML Kit portano Fragment 1.9.0: allineare anche Ktx, altrimenti
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.130" />
+		<!-- MAUI e ML Kit portano Fragment 1.9.x: allineare anche Ktx, altrimenti
 		     BarcodeScanning.Native.Maui 3.1.0 seleziona 1.8.9.3 e duplica FragmentKt in D8/R8. -->
-		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.9.0" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
+		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.9.1" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
 		<!-- Backup su Google Drive: schedulazione periodica in background -->
 		<PackageReference Include="Xamarin.AndroidX.Work.Runtime" Version="2.12.0" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.14" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.15" />
 		<PackageReference Include="sqlite-net-base" Version="1.9.172" />
 		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
 		<PackageReference Include="ZXing.Net" Version="0.16.11" />
